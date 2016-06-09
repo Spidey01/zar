@@ -71,6 +71,9 @@ struct ZarOptions parse_options(int argc, char* argv[])
 		else if (is_option("--help", arg)) {
 			usage_long();
 		}
+		else if (is_option("-v", arg) || is_option("--verbose", arg)) {
+			opts.verbose = true;
+		}
 		else if (is_option("-f", arg)) {
 			i++;
 			opts.zarfile = argv[i];

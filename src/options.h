@@ -30,6 +30,7 @@ struct ZarOptions {
 	 * t == list contents of archive.
 	 */
 	char mode;
+	bool verbose;
 };
 
 struct ZarOptions parse_options(int argc, char* argv[]);
