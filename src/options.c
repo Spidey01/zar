@@ -74,17 +74,17 @@ struct ZarOptions parse_options(int argc, char* argv[])
 		else if (is_option("-v", arg) || is_option("--verbose", arg)) {
 			opts.verbose = true;
 		}
-		else if (is_option("-f", arg)) {
+		else if (is_option("-f", arg) || is_option("--file", arg)) {
 			i++;
 			opts.zarfile = argv[i];
 		}
-		else if (is_option("-c", arg)) {
+		else if (is_option("-c", arg) || is_option("--create", arg)) {
 			opts.mode = 'c';
 		}
-		else if (is_option("-x", arg)) {
+		else if (is_option("-x", arg) || is_option("--extract", arg)) {
 			opts.mode = 'x';
 		}
-		else if (is_option("-t", arg)) {
+		else if (is_option("-t", arg) || is_option("--list", arg)) {
 			opts.mode = 't';
 		}
 		else {
