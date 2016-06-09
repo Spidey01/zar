@@ -15,6 +15,7 @@
  */
 
 #include "options.h"
+#include "io.h"
 
 #include <stdio.h>
 
@@ -23,6 +24,13 @@ int main(int argc, char* argv[])
 	--argc;
 	++argv;
 	struct ZarOptions options = parse_options(argc, argv);
+	if (options.mode == 'c') {
+		/* Let's create us an archive, zaaarrrr! */
+		zar_create(options.zarfile, options.inputs, options.ninputs);
+	}
+	else if (options.mode == 't') {
+		zar_list(options.zarfile);
+	}
 	return 0;
 }
 
