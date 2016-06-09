@@ -32,8 +32,13 @@ void usage_long()
 {
 	puts("usage: zar {zarfile} [input files]");
 	putchar('\n');
-	puts("\t-h,     \tshort help.");
-	puts("\t--help, \tlong help.");
+	puts("\t-h,                      \tshort help.");
+	puts("\t--help,                  \tlong help.");
+	puts("\t-c, --create,            \tcreate an archive.");
+	puts("\t-t, --list,              \tlist archive members.");
+	puts("\t-x, --extract,           \tlist archive members.");
+	puts("\t-f FILE, --file FILE,    \tspecify ZAR archive file.");
+	puts("\t-v, --verbose,           \tchitty, chatty two shoes.");
 	exit(64);
 }
 
@@ -88,7 +93,7 @@ struct ZarOptions parse_options(int argc, char* argv[])
 			opts.mode = 't';
 		}
 		else {
-			printf("unrecongized option: %s\n", arg);
+			printf("unrecognized option: %s\n", arg);
 			usage_short();
 		}
 	}
