@@ -43,7 +43,7 @@ void usage_long()
 }
 
 
-bool inline is_option(const char* option, const char* argument)
+static inline bool is_option(const char* option, const char* argument)
 {
 	/* Yes. I. Am. Lazy. */
 	return strcmp(option, argument) == 0;
