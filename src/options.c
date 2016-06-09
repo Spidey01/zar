@@ -66,7 +66,7 @@ struct ZarOptions parse_options(int argc, char* argv[])
 			break;
 		}
 		else if (is_option("-h", arg)) {
-			usage_long();
+			usage_short();
 		}
 		else if (is_option("--help", arg)) {
 			usage_long();
