@@ -60,6 +60,9 @@ typedef struct ZarFileRecord_t {
 } ZarFileRecord;
 
 typedef struct ZarVolumeRecord_T {
+	/* TODO: format version. */
+	/* TODO: tool name. */
+	/* TODO: tool version. */
 	size_t nrecords;
 	ZarFileRecord** records;
 	/* Checksum of all records data. */

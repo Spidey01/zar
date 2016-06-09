@@ -30,7 +30,7 @@ void usage_short()
 
 void usage_long()
 {
-	puts("usage: zar {zarfile} [input files]");
+	puts("usage: zar [options] {zarfile} [input files]");
 	putchar('\n');
 	puts("\t-h,                      \tshort help.");
 	puts("\t--help,                  \tlong help.");
