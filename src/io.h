@@ -77,6 +77,8 @@ typedef struct ZarVolumeRecord_T {
 /* Probably want to return ZarHandle*? */
 void zar_create(const char* archive, char* files[], size_t count);
 
+void zar_list(const char* archive);
+
 ZarHandle* zar_open(const char* archive);
 void zar_close(ZarHandle* archive);
 
