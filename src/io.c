@@ -219,7 +219,7 @@ Archiver version // 1.0
 
 void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 {
-	const int32_t start, end;
+	int32_t start, end;
 
 	debug("Reading volume record from %s", archive);
 
