@@ -14,6 +14,10 @@ zar.exe: $O/main.obj $O/debug.obj $O/options.obj $O/io.obj
 {$S}.c{$O}.obj::
 	$(CC) $(CFLAGS) /Fo$(O)\ /c $<
 
+clean:
+	-DEL /Q $O\*.obj
+	-DEL .\zar.exe
+
 test:
 	@echo Test...creating ZAR archive
 	.\zar.exe -c -f wtf.zar tmp\eggs tmp\ham tmp\quux tmp\spam
