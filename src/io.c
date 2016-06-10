@@ -18,9 +18,11 @@
 
 #include "debug.h"
 
+#include "sysexits.h"
+
 #include "zlib.h"
 
-#include "errno.h"
+#include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +47,7 @@ static void foo(ZarHandle* archive, const char* file)
 	strncpy(record.path, file, sizeof(record.path));
 
 	if (archive->handle == NULL)
-		error(70 /* EX_SOFTWARE */, "%s: handle not open!", __FILE__);
+		error(EX_SOFTWARE, "%s: handle not open!", __FILE__);
 
 	infile = fopen(file, "r");
 	if (infile == NULL) {
@@ -54,7 +56,7 @@ static void foo(ZarHandle* archive, const char* file)
 	}
 #if 0
 	if (infile == NULL)
-		error(74 /* EX_IOERR */, "failed opening %s (%s)", file, strerror(errno));
+		error(EX_IOERR, "failed opening %s (%s)", file, strerror(errno));
 #endif
 
 /* Simple tests that work like cat inputs > archive. */
@@ -66,7 +68,7 @@ static void foo(ZarHandle* archive, const char* file)
 		debug("read: %c", c);
 		record.checksum = crc32(record.checksum, &c, 1);
 		if (fputc(c, archive->handle) == EOF)
-			error(74 /* EX_IOERR */, "failed writing byte %c from %s to archive %s",
+			error(EX_IOERR, "failed writing byte %c from %s to archive %s",
 			      c, record.path, archive->path);
 		debug("wrote: %c", c);
 	}
@@ -147,8 +149,7 @@ ZarHandle* zar_open(const char* archive)
 
 	ZarHandle* r = malloc(sizeof(ZarHandle));
 	if (r == NULL) {
-		int e = 71 /* EX_OSERR */;
-		error(e, errno == ENOMEM ? "No memory." : "Memory allocator failed");
+		error(EX_OSERR, errno == ENOMEM ? "No memory." : "Memory allocator failed");
 	}
 	memset(r->path, 0, sizeof(r->path));
 	r->handle = NULL;
@@ -165,7 +166,7 @@ ZarHandle* zar_open(const char* archive)
 
 	if (r->handle == NULL) {
 		free(r);
-		error(74 /* EX_IOERR */, "Failed opening archive %s (%s)", archive, strerror(errno));
+		error(EX_IOERR, "Failed opening archive %s (%s)", archive, strerror(errno));
 	}
 
 	return r;
@@ -232,7 +233,7 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 
 	fread(&start, 1, 4, archive->handle);
 	if (start != zar_start_mark)
-		error(65 /* EX_DATAERR */, "%s: bad volume header.", archive->path);
+		error(EX_DATAERR, "%s: bad volume header.", archive->path);
 
 	/* TODO: decode file map */
 
