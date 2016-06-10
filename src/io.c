@@ -50,7 +50,7 @@ static void foo(ZarHandle* archive, const char* file)
 	if (archive->handle == NULL)
 		error(EX_SOFTWARE, "%s: handle not open!", __FILE__);
 
-	infile = fopen(file, "r");
+	infile = fopen(file, "rb");
 	if (infile == NULL) {
 		warn("failed opening %s (%s)", file, strerror(errno));
 		return;
@@ -159,10 +159,11 @@ ZarHandle* zar_open(const char* archive)
 
 	strncpy(r->path, archive, sizeof(r->path));
 	debug("path:%s", r->path);
-	r->handle = fopen(r->path, "r+");
+	r->handle = fopen(r->path, "r+b");
+	debug("fuck");
 	if (errno == ENOENT && r->handle == NULL) {
 		debug("Archive doesn't exist: creating it.");
-		r->handle = fopen(r->path, "w+");
+		r->handle = fopen(r->path, "w+b");
 	}
 
 	if (r->handle == NULL) {
