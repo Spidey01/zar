@@ -18,3 +18,8 @@ old-test:
 	 .\zar.exe -f foo.zar -c obj src
 	 .\zar.exe
 	 .\zar.exe -c obj src
+
+zlib: obj\zlib.lib
+	CD zlib && $(MAKE) /NOLOGO /F .\win32\Makefile.msc
+	COPY /B /Y zlib\zlib.lib obj\\
+	CD zlib && $(MAKE) /NOLOGO /F .\win32\Makefile.msc clean
