@@ -1,6 +1,10 @@
 
 help:
-	@echo wtf
+	@echo targets: help zlib zar test
+	@echo help: this help.
+	@echo zlib: build zlib dependency (Windows)
+	@echo zar: build zar.
+	@echo test: run tests on zar.
 
 all: zlib zar test
 
