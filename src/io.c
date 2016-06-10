@@ -95,8 +95,6 @@ static void foo(ZarHandle* archive, const char* file)
 
 void zar_create(const char* archive, char* files[], size_t count)
 {
-	int i;
-
 	info("archive name:%s", archive);
 	debug("archive members:%d", count);
 
@@ -113,7 +111,7 @@ void zar_create(const char* archive, char* files[], size_t count)
 
 	zar_write_volume_record(volume, zar);
 
-	for (i=0; i < volume->nrecords; ++i) {
+	for (size_t i=0; i < volume->nrecords; ++i) {
 		const char* file = files[i];
 		info("adding %s to archive %s", file, zar->path);
 		foo(zar, file);
@@ -125,7 +123,6 @@ void zar_create(const char* archive, char* files[], size_t count)
 
 void zar_list(const char* archive)
 {
-	int i;
 	ZarHandle* zar;
 	ZarVolumeRecord* volume;
 
@@ -136,7 +133,7 @@ void zar_list(const char* archive)
 	/* Uhh, handle multi-volume archives? */
 	volume = zar_create_volume_header();
 	zar_read_volume_record(volume, zar);
-	for (i=0; i < volume->nrecords; ++i) {
+	for (size_t i=0; i < volume->nrecords; ++i) {
 		debug("dumping file record %d", i);
 	}
 	free(volume);

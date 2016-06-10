@@ -101,6 +101,7 @@ struct ZarOptions parse_options(int argc, char* argv[])
 	argc -= i;
 	for (i=0; i < argc; ++i)
 		debug("remaining args:%s", argv[i]);
+	i = -1;
 
 	opts.ninputs = argc;
 	debug("number of inputs:%d", opts.ninputs);
@@ -115,16 +116,16 @@ struct ZarOptions parse_options(int argc, char* argv[])
 	if (opts.inputs == NULL) {
 		error(71 /* EX_OSERR */, "Unable to allocate memory for %d input files.", argc);
 	}
-	for (i=0; i < opts.ninputs; ++i) {
-		const char* path = argv[i];
-		debug("Adding %s to inputs[%d]", path, i);
-		opts.inputs[i] = argv[i];
+	for (size_t j=0; j < opts.ninputs; ++j) {
+		const char* path = argv[j];
+		debug("Adding %s to inputs[%d]", path, j);
+		opts.inputs[j] = argv[j];
 	}
 
 	debug("ZarOptions::zarfile:%s", opts.zarfile);
 	debug("ZarOptions::mode: %c", opts.mode);
-	for (i=0; i < opts.ninputs; ++i)
-		debug("ZarOptions::inputs[%d]:%s", i, opts.inputs[i]);
+	for (size_t j=0; j < opts.ninputs; ++j)
+		debug("ZarOptions::inputs[%d]:%s", j, opts.inputs[j]);
 
 	return opts;
 }
