@@ -2,8 +2,7 @@
 help:
 	@echo wtf
 
-all: zar test
-
+all: zlib zar test
 
 zar:
 	$(MAKE) /NOLOGO -f src/$(toolchain).mk
@@ -19,7 +18,9 @@ old-test:
 	 .\zar.exe
 	 .\zar.exe -c obj src
 
-zlib: obj\zlib.lib
-	CD zlib && $(MAKE) /NOLOGO /F .\win32\Makefile.msc
-	COPY /B /Y zlib\zlib.lib obj\\
-	CD zlib && $(MAKE) /NOLOGO /F .\win32\Makefile.msc clean
+zlib: FORCE
+	$(MAKE) -f zlib.$(toolchain).mk O=./obj $@
+
+# Not all makes support .PHONY, and nmake is one of them?
+FORCE:
+
