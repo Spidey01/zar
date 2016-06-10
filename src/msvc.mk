@@ -1,14 +1,15 @@
 
 LINK = link /NOLOGO
 CC = cl /nologo
-CFLAGS = /W4 /MT /GR /EHsc /D_CRT_SECURE_NO_WARNINGS
+CFLAGS = /W4 /MD /GR /EHsc /D_CRT_SECURE_NO_WARNINGS /I.\\zlib\\ 
+LIBS = zlib.lib
 O = .\obj
 S = .\src
 
 all: zar.exe
 
-zar.exe: $O/main.obj $O/debug.obj $O/options.obj $O/io.obj
-	$(CC) $(CFLAGS) /Fe$@ $**
+zar.exe: $O/main.obj $O/debug.obj $O/options.obj $O/io.obj 
+	$(CC) $(CFLAGS) /Fe$@ $** $O\zlib.lib
 
 {$S}.c{$O}.obj::
 	$(CC) $(CFLAGS) /Fo$(O)\ /c $<
