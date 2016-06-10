@@ -23,6 +23,7 @@
 #include "zlib.h"
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -198,6 +199,7 @@ void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	debug("zar_start_mark:0x%08x (%d) sizeof %ld", zar_start_mark, zar_start_mark, sizeof(int32_t));
 	debug("end_mark:0x%08x (%d) sizeof %ld", end_mark, end_mark, sizeof(int32_t));
 
+	/* How do we know if we should write start or end mark? */
 	fwrite(&zar_start_mark, 1, 4, archive->handle);
 
 	/* TODO: encode file map */
@@ -205,8 +207,17 @@ void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	fwrite(&volume->checksum, 1, 4, archive->handle);
 	fwrite(&volume->offset, 1, 8, archive->handle);
 
-	fwrite(&end_mark, 1, 4, archive->handle);
 	debug("offset_t:%ld", sizeof(long));
+
+	const char* myname = "TPZAR";
+	fwrite(myname, 1, strlen(myname), archive->handle);
+	fputc('\0', archive->handle);
+	fwrite(myname, 1, strlen(myname), stderr); fputc('\n', stderr);
+
+	const char* myver = "0.1";
+	fwrite(myver, 1, strlen(myver), archive->handle);
+	fputc('\0', archive->handle);
+	fwrite(myver, 1, strlen(myver), stderr); fputc('\n', stderr);
 }
 #if 0
 ZAR00000
@@ -242,6 +253,26 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 
 	fread(&volume->offset, 1, 8, archive->handle);
 	debug("%s: offset to backup volume record %ld", archive->path, volume->offset);
+
+	/* 
+	 * Parse the name and version of what created this volume.
+	 */
+	char app[16], ver[16];
+	memset(app, 0, sizeof(app));
+	memset(ver, 0, sizeof(ver));
+	int i = 0;
+#define SLURP(what) \
+	while (i < sizeof(what)) { \
+		(what)[i] = fgetc(archive->handle); \
+		if ((what)[i] == '\0') \
+			break; \
+		i++; \
+	}
+	SLURP(app)
+	i = 0;
+	SLURP(ver)
+#undef SLURP
+	info("volume created by %s/%s", app, ver);
 
 	/* TODO: we might want to verify footer. */
 
