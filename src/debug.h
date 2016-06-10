@@ -16,6 +16,7 @@
 #ifndef ZAR_SRC_DEBUG__H
 #define ZAR_SRC_DEBUG__H
 
+void xtrace(const char* fmt, ...);
 void debug(const char* fmt, ...);
 void info(const char* fmt, ...);
 void warn(const char* fmt, ...);

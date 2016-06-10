@@ -29,6 +29,7 @@
 		va_end(args); \
 	}
 
+FUN(xtrace)
 FUN(debug)
 FUN(info)
 FUN(warn)
