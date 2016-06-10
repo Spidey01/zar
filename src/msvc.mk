@@ -6,11 +6,17 @@ LIBS = zlib.lib
 O = .\obj
 S = .\src
 
-all: zar.exe
+zar: zar.exe
 
 zar.exe: $O/main.obj $O/debug.obj $O/options.obj $O/io.obj 
 	$(CC) $(CFLAGS) /Fe$@ $** $O\zlib.lib
 
 {$S}.c{$O}.obj::
 	$(CC) $(CFLAGS) /Fo$(O)\ /c $<
+
+test:
+	@echo Test...creating ZAR archive
+	.\zar.exe -c -f wtf.zar tmp\eggs tmp\ham tmp\quux tmp\spam
+	@echo Test...listing ZAR archive
+	.\zar.exe -t -f wtf.zar
 
