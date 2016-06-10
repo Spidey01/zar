@@ -261,7 +261,7 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	int i = 0;
 #define SLURP(what) \
 	while (i < sizeof(what)) { \
-		(what)[i] = fgetc(archive->handle); \
+		(what)[i] = (char)fgetc(archive->handle); \
 		if ((what)[i] == '\0') \
 			break; \
 		i++; \
