@@ -22,7 +22,7 @@
 
 #define ZAR_MAX_PATH 1024
 /* Place holder because we don't do CRC-32 yet. */
-typedef int32_t CRC32_t;
+typedef uint32_t CRC32_t;
 typedef int64_t ZarOffset_t;
 
 struct ZarVolumeRecord_t;
@@ -39,6 +39,9 @@ typedef struct ZarFileRecord_t {
 	/** Path relative to the root of the archive. */
 	char path[ZAR_MAX_PATH];
 
+	/** CRC32 Checksum of original file being recorded. */
+	CRC32_t checksum;
+
 	/** Character representation of how this file is stored.
 	 *
 	 * Standard format codes:
@@ -50,13 +53,14 @@ typedef struct ZarFileRecord_t {
 	 */
 	char format[2];
 
+
 	/* TODO: the actual file data. */
+
+	/* TODO: offset to next record. */
 
 	/* TODO: file permissions */
 
 	/* TODO: whatever. */
-
-	/* TODO: checksum */
 } ZarFileRecord;
 
 typedef struct ZarVolumeRecord_T {

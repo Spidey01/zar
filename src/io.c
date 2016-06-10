@@ -18,6 +18,8 @@
 
 #include "debug.h"
 
+#include "zlib.h"
+
 #include "errno.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -59,14 +61,17 @@ static void foo(ZarHandle* archive, const char* file)
 #if 1
 	debug("buffering %s", record.path);
 	errno = 0;
+	record.checksum = crc32(0L, Z_NULL, 0);
 	while ((c = fgetc(infile)) != EOF) {
-		// Always returns EOF??
 		debug("read: %c", c);
+		record.checksum = crc32(record.checksum, &c, 1);
 		if (fputc(c, archive->handle) == EOF)
 			error(74 /* EX_IOERR */, "failed writing byte %c from %s to archive %s",
 			      c, record.path, archive->path);
 		debug("wrote: %c", c);
 	}
+	debug("%s CRC-32: %lu", record.path, record.checksum);
+	fwrite(&record.checksum, 1, sizeof(CRC32_t), archive->handle);
 
 #else /////////////////////////
 	char buffer[128];
@@ -104,7 +109,6 @@ void zar_create(const char* archive, char* files[], size_t count)
 	/* archive->nvolumes++; */
 
 	zar_write_volume_record(volume, zar);
-	exit(0);
 
 	for (i=0; i < volume->nrecords; ++i) {
 		const char* file = files[i];
