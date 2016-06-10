@@ -19,6 +19,7 @@ clean:
 	-DEL .\zar.exe
 
 test:
+	@DEL /Q wtf.zar
 	@echo Test...creating ZAR archive
 	.\zar.exe -c -f wtf.zar tmp\eggs tmp\ham tmp\quux tmp\spam
 	@echo Test...listing ZAR archive

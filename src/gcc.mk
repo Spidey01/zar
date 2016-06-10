@@ -19,6 +19,7 @@ clean:
 	rm -f zar
 
 test:
+	rm -f wtf.zar
 	@echo Test...creating ZAR archive
 	./zar -c -f wtf.zar tmp/eggs tmp/ham tmp/quux tmp/spam
 	@echo Test...listing ZAR archive
