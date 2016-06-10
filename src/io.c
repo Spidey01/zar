@@ -179,7 +179,6 @@ ZarHandle* zar_open(const char* archive)
 	strncpy(r->path, archive, sizeof(r->path));
 	debug("path:%s", r->path);
 	r->handle = fopen(r->path, "r+b");
-	debug("fuck");
 	if (errno == ENOENT && r->handle == NULL) {
 		debug("Archive doesn't exist: creating it.");
 		r->handle = fopen(r->path, "w+b");
@@ -305,18 +304,6 @@ void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	fputc('\0', archive->handle);
 	fwrite(myver, 1, strlen(myver), stderr); fputc('\n', stderr);
 }
-#if 0
-ZAR00000
-// VOLUME HEADER
-File map 
-    Name + offset
-    .......
-Checksum of all file records in volume // e.g. read them all into a block and check sum them to verify archive volume integrity
-Offset to footer
-Archiver name // TPZAR
-Archiver version // 1.0
-00000000
-#endif
 
 void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 {
