@@ -157,6 +157,8 @@ void zar_list(const char* archive)
 	zar_read_volume_record(volume, zar);
 	for (size_t i=0; i < volume->nrecords; ++i) {
 		debug("dumping file record %d", i);
+		/* We don't have any records yet after a read. */
+		/* info("%s", volume->records[i]->path); */
 	}
 	free(volume);
 	zar_close(zar);
@@ -274,7 +276,7 @@ void zar_write_filemap(ZarVolumeRecord* volume, ZarHandle* archive)
 	fwrite(&diff, 1, sizeof(diff), archive->handle);
 	#endif
 	xtrace("wrote updated file map length of %d", diff);
-	if (fseek(archive->handle, diff, SEEK_CUR) != 0)
+	if (fseek(archive->handle, (long)diff, SEEK_CUR) != 0)
 		error(EX_IOERR, "%s: failed seeking to end of file map", archive->path);
 	xtrace("fast forwarded current pos %ld", ftell(archive->handle));
 }
@@ -326,9 +328,23 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	get_string(encoding, sizeof(encoding), archive->handle);
 	debug("%s: file map is & paths are encoded as %s", archive->path, encoding);
 
+	long pos = ftell(archive->handle);
+	xtrace("Started reading file map entries at %d", pos);
+	do {
+		ZarOffset_t offset;
+		char path[ZAR_MAX_PATH];
+		fread(&offset, 1, sizeof(offset), archive->handle);
+		get_string(path, sizeof(path), archive->handle);
+		debug("%s: next offset in file map: %d", archive->path, offset);
+		debug("%s: next path in file map: %s", archive->path, path);
+		pos = ftell(archive->handle);
+
+		volume->nrecords += 1;
+	} while(pos < maplength);
+	xtrace("Finished reading file map entries at %d", ftell(archive->handle));
+
 	fread(&volume->checksum, 1, 4, archive->handle);
 	debug("%s: volume checksum: %ld", archive->path, volume->checksum); /* TODO: to string! */
-
 	fread(&volume->offset, 1, 8, archive->handle);
 	debug("%s: offset to backup volume record %ld", archive->path, volume->offset);
 
