@@ -35,6 +35,21 @@ static const int32_t zar_start_mark = 0x0052415A;
 static const int32_t end_mark = 0x5A415200;
 
 
+/** Like fgets() but looks for NUL terminator instead of newline. */
+static inline void get_string(char* dest, size_t length, FILE *file)
+{
+	size_t i = 0;
+	memset(dest, 0, length);
+	while (i < length) {
+		/* What about EOF? */
+		dest[i] = (char)fgetc(file);
+		if (dest[i] == '\0')
+			break;
+		i++;
+	}
+}
+
+
 static void foo(ZarHandle* archive, const char* file)
 {
 	int c;
@@ -104,8 +119,15 @@ void zar_create(const char* archive, char* files[], size_t count)
 
 	ZarVolumeRecord* volume = zar_create_volume_header();
 	volume->nrecords = count;
+	volume->records = malloc(volume->nrecords * sizeof(ZarFileRecord));
+	debug("volume->records: %p", volume->records);
 	volume->checksum = 0;
 	volume->offset = 0;
+	for (size_t i=0; i < volume->nrecords; ++i) {
+		ZarFileRecord* r = volume->records[i] = malloc(sizeof(ZarFileRecord));
+		strncpy(r->path, files[i], sizeof(r->path));
+		debug("adding %s to file map for archive %s", r->path, zar->path);
+	}
 	/* archive->volumes[archive->nvolumes] = volume; */
 	/* archive->nvolumes++; */
 
@@ -191,6 +213,72 @@ ZarVolumeRecord* zar_create_volume_header()
 	return header;
 }
 
+/** Writes the volume record's file map to archive.
+ *
+ * A file map consists of the following data:
+ *
+ *   - Length of this block, the file map.
+ *   - Encoding of paths utf-what.
+ *   - Offset to first file record.
+ *   - Path of first file record.
+ *   - ... more records ...
+ *
+ * Basically an offset to slurp or skip it, the encoding, and a sequence of offsets and strings.
+ */
+void zar_write_filemap(ZarVolumeRecord* volume, ZarHandle* archive)
+{
+	xtrace("pos at %s start: %d", __FUNCTION__, ftell(archive->handle));
+
+	/* We don't know the length yet, so B/P to rewind to here and write it.
+	 * And then reuse it to fast forward back again.
+	 * Be mindful of the math when seeking!
+	 */
+	fpos_t mark;
+	if (fgetpos(archive->handle, &mark) != 0)
+		error(EX_IOERR, "%s: unable to get file positon: %s", archive->path, strerror(errno));
+
+	ZarOffset_t diff = 0;
+	fwrite(&diff, 1, sizeof(diff), archive->handle);
+
+	diff = ftell(archive->handle) - sizeof(diff);
+	xtrace("diff marked at %d", diff);
+	/* tpzar only supports UTF-8, and only in as much as the C library does if even that. */
+	static const char* encoding = "utf-8";
+	fwrite(encoding, 1, strlen(encoding), archive->handle);
+	fputc(0, archive->handle);
+
+	/* File map is a simple offset -> path. */
+	for (size_t i=0; i < volume->nrecords; ++i) {
+		debug("write 0'd offset %d bytes long", sizeof(ZarOffset_t));
+		ZarOffset_t offset = 0;
+		fwrite(&offset, 1, sizeof(ZarOffset_t), archive->handle);
+
+		debug("write NUL terminated string '%s', %d bytes long",
+		      volume->records[i]->path, strlen(volume->records[i]->path)+1);
+		fwrite(volume->records[i]->path, 1, strlen(volume->records[i]->path), archive->handle);
+		fputc(0, archive->handle);
+	}
+
+	xtrace("pos after map written: %ld", ftell(archive->handle));
+	/* Alright: rewind and write the updated file map length. */
+	diff = ftell(archive->handle) - diff - sizeof(diff);
+	xtrace("diff: %d", diff);
+	xtrace("rewinding from current pos %ld", ftell(archive->handle));
+	if (fsetpos(archive->handle, &mark) != 0)
+		error(EX_IOERR, "%s: failed seeking back to file map offset", archive->path);
+	xtrace("rewound to current pos %ld", ftell(archive->handle));
+	/* Great for testing. */
+	#if 0
+	const char* xxxxxxxx = "XXXXXXXX"; 
+	fwrite(xxxxxxxx , 1, sizeof(diff), archive->handle);
+	#else
+	fwrite(&diff, 1, sizeof(diff), archive->handle);
+	#endif
+	xtrace("wrote updated file map length of %d", diff);
+	if (fseek(archive->handle, diff, SEEK_CUR) != 0)
+		error(EX_IOERR, "%s: failed seeking to end of file map", archive->path);
+	xtrace("fast forwarded current pos %ld", ftell(archive->handle));
+}
 
 void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 {
@@ -200,7 +288,7 @@ void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	/* How do we know if we should write start or end mark? */
 	fwrite(&zar_start_mark, 1, 4, archive->handle);
 
-	/* TODO: encode file map */
+	zar_write_filemap(volume, archive);
 
 	fwrite(&volume->checksum, 1, 4, archive->handle);
 	fwrite(&volume->offset, 1, 8, archive->handle);
@@ -230,7 +318,6 @@ Archiver version // 1.0
 00000000
 #endif
 
-
 void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 {
 	int32_t start, end;
@@ -245,6 +332,12 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 		error(EX_DATAERR, "%s: bad volume header.", archive->path);
 
 	/* TODO: decode file map */
+	ZarOffset_t maplength;
+	fread(&maplength, 1, sizeof(ZarOffset_t), archive->handle);
+	debug("%s: file map is %zd bytes long", archive->path, maplength);
+	char encoding[8];
+	get_string(encoding, sizeof(encoding), archive->handle);
+	debug("%s: file map is & paths are encoded as %s", archive->path, encoding);
 
 	fread(&volume->checksum, 1, 4, archive->handle);
 	debug("%s: volume checksum: %ld", archive->path, volume->checksum); /* TODO: to string! */
@@ -256,20 +349,8 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	 * Parse the name and version of what created this volume.
 	 */
 	char app[16], ver[16];
-	memset(app, 0, sizeof(app));
-	memset(ver, 0, sizeof(ver));
-	int i = 0;
-#define SLURP(what) \
-	while (i < sizeof(what)) { \
-		(what)[i] = (char)fgetc(archive->handle); \
-		if ((what)[i] == '\0') \
-			break; \
-		i++; \
-	}
-	SLURP(app)
-	i = 0;
-	SLURP(ver)
-#undef SLURP
+	get_string(app, sizeof(app), archive->handle);
+	get_string(ver, sizeof(ver), archive->handle);
 	info("volume created by %s/%s", app, ver);
 
 	/* TODO: we might want to verify footer. */
