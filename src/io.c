@@ -32,7 +32,7 @@
 /* ZAR0 stored in little-endian. This shows as "ZAR^@" if opened in vim. */
 static const int32_t zar_start_mark = 0x0052415A;
 /* The inverse but still in little-endian. */
-static const int32_t end_mark = 0x5A415200;
+static const int32_t zar_end_mark = 0x5A415200;
 
 
 /** Like fgets() but looks for NUL terminator instead of newline. */
@@ -284,7 +284,7 @@ void zar_write_filemap(ZarVolumeRecord* volume, ZarHandle* archive)
 void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 {
 	debug("zar_start_mark:0x%08x (%d) sizeof %ld", zar_start_mark, zar_start_mark, sizeof(int32_t));
-	debug("end_mark:0x%08x (%d) sizeof %ld", end_mark, end_mark, sizeof(int32_t));
+	debug("zar_end_mark:0x%08x (%d) sizeof %ld", zar_end_mark, zar_end_mark, sizeof(int32_t));
 
 	/* How do we know if we should write start or end mark? */
 	fwrite(&zar_start_mark, 1, 4, archive->handle);
@@ -314,7 +314,7 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	debug("Reading volume record from %s", archive);
 
 	debug("zar_start_mark:0x%08x (%d) sizeof %ld", zar_start_mark, zar_start_mark, sizeof(int32_t));
-	debug("end_mark:0x%08x (%d) sizeof %ld", end_mark, end_mark, sizeof(int32_t));
+	debug("zar_end_mark:0x%08x (%d) sizeof %ld", zar_end_mark, zar_end_mark, sizeof(int32_t));
 
 	fread(&start, 1, 4, archive->handle);
 	if (start != zar_start_mark)
