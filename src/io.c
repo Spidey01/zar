@@ -50,6 +50,13 @@ static inline void get_string(char* dest, size_t length, FILE *file)
 }
 
 
+static inline void put_string(char* str, FILE* file)
+{
+	fwrite(str, 1, strlen(str), file);
+	fputc('\0', file);
+}
+
+
 /** Return an fpos_t marking current position in archive.
  *
  * This allows one to later seek there using fsetpos(). If it fails, error() is
@@ -275,8 +282,7 @@ void zar_write_filemap(ZarVolumeRecord* volume, ZarHandle* archive)
 	xtrace("diff marked at %d", diff);
 	/* tpzar only supports UTF-8, and only in as much as the C library does if even that. */
 	static const char* encoding = "utf-8";
-	fwrite(encoding, 1, strlen(encoding), archive->handle);
-	fputc(0, archive->handle);
+	put_string(encoding, archive->handle);
 
 	/* File map is a simple offset -> path. */
 	for (size_t i=0; i < volume->nrecords; ++i) {
@@ -286,8 +292,7 @@ void zar_write_filemap(ZarVolumeRecord* volume, ZarHandle* archive)
 
 		debug("write NUL terminated string '%s', %d bytes long",
 		      volume->records[i]->path, strlen(volume->records[i]->path)+1);
-		fwrite(volume->records[i]->path, 1, strlen(volume->records[i]->path), archive->handle);
-		fputc(0, archive->handle);
+		put_string(volume->records[i]->path, archive->handle);
 	}
 
 	xtrace("pos after map written: %ld", ftell(archive->handle));
@@ -327,14 +332,12 @@ void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	debug("offset_t:%ld", sizeof(long));
 
 	const char* myname = "TPZAR";
-	fwrite(myname, 1, strlen(myname), archive->handle);
-	fputc('\0', archive->handle);
-	fwrite(myname, 1, strlen(myname), stderr); fputc('\n', stderr);
+	put_string(myname, archive->handle);
 
 	const char* myver = "0.1";
-	fwrite(myver, 1, strlen(myver), archive->handle);
-	fputc('\0', archive->handle);
-	fwrite(myver, 1, strlen(myver), stderr); fputc('\n', stderr);
+	put_string(myver, archive->handle);
+
+	info("Wrote volume created by %s/%s", myname);
 }
 
 void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
@@ -479,8 +482,7 @@ void zar_write_file_record(ZarFileRecord* record, ZarHandle* archive)
 	fputc(record->format[1], archive->handle);
 
 	warn("pos at write path: %ld", ftell(archive->handle));
-	fwrite(record->path, 1, strlen(record->path), archive->handle);
-	fputc(0, archive->handle);
+	put_string(record->path, archive->handle);
 
 	fpos_t length_mark = mark_position(archive);
 	warn("pos at write length: %ld", ftell(archive->handle));
