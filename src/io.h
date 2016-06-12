@@ -36,8 +36,8 @@ typedef struct {
 
 /** Records a file within a ZAR volume. */
 typedef struct ZarFileRecord_t {
-	/** Path relative to the root of the archive. */
-	char path[ZAR_MAX_PATH];
+	/* Offset to the end of this record. */
+	ZarOffset_t offset;
 
 	/** CRC32 Checksum of original file being recorded. */
 	CRC32_t checksum;
@@ -46,13 +46,15 @@ typedef struct ZarFileRecord_t {
 	 *
 	 * Standard format codes:
 	 *
-	 *     - "gz" => GZip compressed.
-	 *     - "bz" => BZip2 compressed.
-	 *     - "xz" => XZ compressed.
-	 *     - "  " => No compression.
+	 *     - "DF" => No compression.
 	 */
 	char format[2];
 
+	/** Path relative to the root of the archive. */
+	char path[ZAR_MAX_PATH];
+
+	/** Size of the recorded file data. */
+	ZarOffset_t length;
 
 	/* TODO: the actual file data. */
 
@@ -89,6 +91,10 @@ void zar_close(ZarHandle* archive);
 ZarVolumeRecord* zar_create_volume_header();
 void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive);
 void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive);
+
+ZarFileRecord* zar_create_file_record();
+void zar_read_file_record(ZarFileRecord* record, ZarHandle* archive);
+void zar_write_file_record(ZarFileRecord* record, ZarHandle* archive);
 
 #endif
 

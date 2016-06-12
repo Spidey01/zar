@@ -50,12 +50,64 @@ static inline void get_string(char* dest, size_t length, FILE *file)
 }
 
 
+/** Return an fpos_t marking current position in archive.
+ *
+ * This allows one to later seek there using fsetpos(). If it fails, error() is
+ * called to exit the program.
+ */
+static fpos_t mark_position(ZarHandle* archive)
+{
+	fpos_t m;
+	if (fgetpos(archive->handle, &m) != 0)
+		error(EX_IOERR, "%s: unable to get file positon: %s", archive->path, strerror(errno));
+	return m;
+}
+
+
+/** Store raw file data in archive.
+ *
+ * Call this to copy the file into the archive without any mutations.
+ * Updates the record's checksum field with the inputs CRC-32.
+ * Returns the length of the data in bytes.
+ */
+static ZarOffset_t record_raw_file(ZarFileRecord* record, ZarHandle* archive)
+{
+	ZarOffset_t length = 0;
+
+	xtrace("%s: recording raw file to archive %s.", record->path, archive->path);
+
+	FILE* infile = fopen(record->path, "rb");
+	if (infile == NULL) {
+		warn("failed opening %s (%s)", record->path, strerror(errno));
+		return -1;
+	}
+
+	record->checksum = crc32(0L, Z_NULL, 0);
+	int c;
+	while ((c = fgetc(infile)) != EOF) {
+		length += 1;
+		record->checksum = crc32(record->checksum, (Bytef*)&c, 1);
+		if (fputc(c, archive->handle) == EOF)
+			error(EX_IOERR, "failed writing byte %d from %s to archive %s",
+			      length, record->path, archive->path);
+	}
+	debug("%s: file checksum: %lu", record->path, record->checksum);
+	debug("%s: file length: %d", record->path, length);
+
+	if (feof(infile))
+		debug("end of %s", record->path);
+	fclose(infile);
+
+	return length;
+}
+
+
 static void foo(ZarHandle* archive, const char* file)
 {
-	int c;
 	FILE* infile;
 	ZarFileRecord record;
 
+	/* Where to move this? */
 	if (*file == '/' || *file == '\\') {
 		debug("stripping leading / from %s", file);
 		++file;
@@ -70,38 +122,9 @@ static void foo(ZarHandle* archive, const char* file)
 		warn("failed opening %s (%s)", file, strerror(errno));
 		return;
 	}
-#if 0
-	if (infile == NULL)
-		error(EX_IOERR, "failed opening %s (%s)", file, strerror(errno));
-#endif
 
-/* Simple tests that work like cat inputs > archive. */
-#if 1
-	debug("buffering %s", record.path);
-	errno = 0;
-	record.checksum = crc32(0L, Z_NULL, 0);
-	while ((c = fgetc(infile)) != EOF) {
-		debug("read: %c", c);
-		record.checksum = crc32(record.checksum, &c, 1);
-		if (fputc(c, archive->handle) == EOF)
-			error(EX_IOERR, "failed writing byte %c from %s to archive %s",
-			      c, record.path, archive->path);
-		debug("wrote: %c", c);
-	}
-	debug("%s CRC-32: %lu", record.path, record.checksum);
-	fwrite(&record.checksum, 1, sizeof(CRC32_t), archive->handle);
+	// snip
 
-#else /////////////////////////
-	char buffer[128];
-	memset(buffer, 0, sizeof(buffer));
-	debug("blah:%s", fgets(buffer, sizeof(buffer), archive->handle));
-	while (fgets(buffer, sizeof(buffer), infile) != NULL) {
-		debug("fgets over %s read \"%s\"", record.path, buffer);
-		int nobjs = fwrite(buffer, 1, sizeof(buffer), archive->handle);
-		if (nobjs != sizeof(buffer))
-			warn("only wrote %d bytes of %s to archive %s", nobjs, record.path, archive->path);
-	}
-#endif
 	if (feof(infile))
 		debug("end of %s", record.path);
 
@@ -124,9 +147,9 @@ void zar_create(const char* archive, char* files[], size_t count)
 	volume->checksum = 0;
 	volume->offset = 0;
 	for (size_t i=0; i < volume->nrecords; ++i) {
-		ZarFileRecord* r = volume->records[i] = malloc(sizeof(ZarFileRecord));
-		strncpy(r->path, files[i], sizeof(r->path));
-		debug("adding %s to file map for archive %s", r->path, zar->path);
+		volume->records[i] = zar_create_file_record(files[i]);
+		debug("adding %s to file map for archive %s",
+		      volume->records[i]->path, zar->path);
 	}
 	/* archive->volumes[archive->nvolumes] = volume; */
 	/* archive->nvolumes++; */
@@ -136,7 +159,8 @@ void zar_create(const char* archive, char* files[], size_t count)
 	for (size_t i=0; i < volume->nrecords; ++i) {
 		const char* file = files[i];
 		info("adding %s to archive %s", file, zar->path);
-		foo(zar, file);
+		/* foo(zar, file); */
+		zar_write_file_record(volume->records[i], zar);
 	}
 
 	zar_close(zar);
@@ -156,9 +180,17 @@ void zar_list(const char* archive)
 	volume = zar_create_volume_header();
 	zar_read_volume_record(volume, zar);
 	for (size_t i=0; i < volume->nrecords; ++i) {
-		debug("dumping file record %d", i);
-		/* We don't have any records yet after a read. */
-		/* info("%s", volume->records[i]->path); */
+		ZarFileRecord* record = volume->records[i];
+		debug("dumping file record %s", record->path);
+
+		/* We don't need to do this as we already know the path.
+		 * But hey, I wanna test this function >_<.
+		 */
+		zar_read_file_record(record, zar);
+	}
+
+	for (size_t i=0; i < volume->nrecords; ++i) {
+		free(volume->records[i]);
 	}
 	free(volume);
 	zar_close(zar);
@@ -234,9 +266,7 @@ void zar_write_filemap(ZarVolumeRecord* volume, ZarHandle* archive)
 	 * And then reuse it to fast forward back again.
 	 * Be mindful of the math when seeking!
 	 */
-	fpos_t mark;
-	if (fgetpos(archive->handle, &mark) != 0)
-		error(EX_IOERR, "%s: unable to get file positon: %s", archive->path, strerror(errno));
+	fpos_t mark = mark_position(archive);
 
 	ZarOffset_t diff = 0;
 	fwrite(&diff, 1, sizeof(diff), archive->handle);
@@ -330,6 +360,7 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 
 	long pos = ftell(archive->handle);
 	xtrace("Started reading file map entries at %d", pos);
+	volume->records = NULL;
 	do {
 		ZarOffset_t offset;
 		char path[ZAR_MAX_PATH];
@@ -339,6 +370,16 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 		debug("%s: next path in file map: %s", archive->path, path);
 		pos = ftell(archive->handle);
 
+		/*
+		 * There's no indication of how many files are in the map. Assume 1 and
+		 * realloc() as necessary. That way we can stub a record.
+		 */
+		if (volume->records == NULL) {
+			volume->records = malloc(sizeof(ZarFileRecord) * 1);
+		} else {
+			volume->records = realloc(volume->records, sizeof(ZarFileRecord) * (volume->nrecords + 1));
+		}
+		volume->records[volume->nrecords] = zar_create_file_record(path);
 		volume->nrecords += 1;
 	} while(pos < maplength);
 	xtrace("Finished reading file map entries at %d", ftell(archive->handle));
@@ -360,3 +401,112 @@ void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 
 }
 
+
+ZarFileRecord* zar_create_file_record(const char* path)
+{
+	ZarFileRecord* r = malloc(sizeof(ZarFileRecord));
+	if (r == NULL)
+		error(EX_OSERR, errno == ENOMEM ? "No memory." : "Memory allocator failed");
+	strncpy(r->path, path, sizeof(r->path));
+	debug("created file record for path %s", r->path);
+
+	/* Make sure these fields are initialized rather than left in an undefined state. */
+	r->offset = 0;
+	r->checksum = 0;
+	r->length = 0;
+	r->format[0] = 0xDE;
+	r->format[1] = 0xAD;
+
+	return r;
+}
+
+
+/** Read record from current archive position.
+ *
+ * Current position into the archive must be aligned to the start of a record.
+ */
+void zar_read_file_record(ZarFileRecord* record, ZarHandle* archive)
+{
+	warn("pos at read offset: %ld", ftell(archive->handle));
+	fread(&record->offset, 1, sizeof(ZarOffset_t), archive->handle);
+	debug("offset to end of record: %ld bytes", record->offset);
+
+	warn("pos at read format: %ld", ftell(archive->handle));
+	record->format[0] = (char)fgetc(archive->handle);
+	record->format[1] = (char)fgetc(archive->handle);
+	debug("file data format is %c%c", record->format[0], record->format[0]);
+
+	warn("pos at read path: %ld", ftell(archive->handle));
+	/* We're limiting paths to ZAR_MAX_PATH but the format uses NUL termination. */
+	get_string(record->path, sizeof(record->path), archive->handle);
+	debug("read file record path: %s", record->path);
+
+	warn("pos at read length: %ld", ftell(archive->handle));
+	fread(&record->length, 1, sizeof(ZarOffset_t), archive->handle);
+	debug("file data is %d bytes long", record->length);
+	fseek(archive->handle, record->length, SEEK_CUR);
+
+	fread(&record->checksum, 1, sizeof(CRC32_t), archive->handle);
+	debug("file record checksum: %lu", record->checksum); /* TODO: to string! */
+}
+
+
+void zar_write_file_record(ZarFileRecord* record, ZarHandle* archive)
+{
+	puts("------------------------------------------------------------------------------------------");
+	fpos_t offset_mark = mark_position(archive);
+
+	xtrace("start of record at %ld bytes", ftell(archive->handle));
+	fwrite("OOOOOOOO", 1, sizeof(ZarOffset_t), archive->handle);
+	xtrace("after offset at start of record at %ld bytes", ftell(archive->handle));
+	record->offset = ftell(archive->handle);
+
+	/* TODO: How do we want to decide format?
+	 *
+	 * Best plan is probably to make a guess if the file matches a known
+	 * file extension or magic number for a type we know won't compress
+	 * well. And then either store it or apply a minimalist RLE.
+	 *
+	 * If it's just random data other than that: deflate the sucker.
+	 *
+	 * Reserve future XZ support for certain data sets or a "Try harder" option.
+	 */
+	/* For now we just store the data. */
+	record->format[1] = record->format[0] = 0x00;
+
+	warn("pos at write format: %ld", ftell(archive->handle));
+	fputc(record->format[0], archive->handle);
+	fputc(record->format[1], archive->handle);
+
+	warn("pos at write path: %ld", ftell(archive->handle));
+	fwrite(record->path, 1, strlen(record->path), archive->handle);
+	fputc(0, archive->handle);
+
+	fpos_t length_mark = mark_position(archive);
+	warn("pos at write length: %ld", ftell(archive->handle));
+	fwrite("LLLLLLLL", 1, sizeof(ZarOffset_t), archive->handle);
+
+	record->length = record_raw_file(record, archive);
+
+	fwrite(&record->checksum, 1, sizeof(CRC32_t), archive->handle);
+
+	xtrace("end of record at %ld bytes", ftell(archive->handle));
+
+	/* Leap back to update the offset to end of record. */
+	record->offset = ftell(archive->handle) - record->offset;
+	fpos_t end_mark = mark_position(archive);
+	if (fsetpos(archive->handle, &offset_mark) != 0)
+		error(EX_IOERR, "%s: failed seeking back to file record offset", archive->path);
+	debug("offset to next record: %ld", record->offset);
+	fwrite(&record->offset, 1, sizeof(ZarOffset_t), archive->handle);
+
+	/* And forward to update the length of the compressed data. */
+	if (fsetpos(archive->handle, &length_mark))
+		error(EX_IOERR, "%s: failed seeking back to file data length", archive->path);
+	debug("length of recorded file: %ld", record->length);
+	fwrite(&record->length, 1, sizeof(ZarOffset_t), archive->handle);
+
+
+	if (fsetpos(archive->handle, &end_mark) != 0)
+		error(EX_IOERR, "%s: failed seeking back to end of record", archive->path);
+}
