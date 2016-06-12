@@ -50,7 +50,7 @@ static inline void get_string(char* dest, size_t length, FILE *file)
 }
 
 
-static inline void put_string(char* str, FILE* file)
+static inline void put_string(const char* str, FILE* file)
 {
 	fwrite(str, 1, strlen(str), file);
 	fputc('\0', file);
