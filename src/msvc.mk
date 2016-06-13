@@ -24,4 +24,8 @@ test:
 	.\zar.exe -c -f wtf.zar tmp\eggs tmp\ham tmp\quux tmp\spam
 	@echo Test...listing ZAR archive
 	.\zar.exe -t -f wtf.zar
-
+	@echo Test...extracting ZAR archive
+	-RMDIR /Q /S wtf.test
+	-MKDIR wtf.test
+	-MKDIR wtf.test\tmp
+	.\zar.exe -x -f wtf.zar -C wtf.test
