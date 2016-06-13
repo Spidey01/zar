@@ -31,6 +31,9 @@ int main(int argc, char* argv[])
 	else if (options.mode == 't') {
 		zar_list(options.zarfile);
 	}
+	else if (options.mode == 'x') {
+		zar_extract(options.zarfile, options.dir);
+	}
 	return 0;
 }
 

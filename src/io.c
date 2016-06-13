@@ -109,6 +109,64 @@ static ZarOffset_t record_raw_file(ZarFileRecord* record, ZarHandle* archive)
 }
 
 
+static void extract_raw_file(ZarFileRecord* record, ZarHandle* archive)
+{
+	debug("cur pos: %ld",ftell(archive->handle));
+	debug("offset: %ld", record->offset);
+	debug("length: %ld", record->length);
+	debug("checksum: %lu", record->checksum);
+
+	/* How far to skip from start of record to data to extract. */
+	ZarOffset_t skip =
+	        sizeof(ZarOffset_t)       /* Offset to end of record. */
+	      + 2                        /* Format bytes. */
+	      + strlen(record->path) + 1 /* NUL terminated path */
+	      + sizeof(ZarOffset_t)      /* Length of data */
+	      ;
+
+	/* Seek from start of record to start of data in record. */
+	if (fseek(archive->handle, (long)skip, SEEK_CUR) != 0)
+		error(EX_IOERR, "Unable to seek to start of file data.");
+	debug("start of file data at pos: %ld", ftell(archive->handle));
+
+	/*
+	 * Pickle: doesn't handle directory issues. Yet.
+	 */
+
+	FILE* outfile = fopen(record->path, "wb");
+	if (outfile == NULL)
+		error(EX_IOERR, "failed creating %s: %s", record->path, strerror(errno));
+
+	CRC32_t outsum = crc32(0L, Z_NULL, 0);
+	debug("about to read from pos: %ld", ftell(archive->handle));
+	for (ZarOffset_t i=0; i < record->length; ++i) {
+		int c = fgetc(archive->handle);
+		if (c == EOF)
+			error(EX_IOERR, "%s: unexpected EOF.", archive->path);
+		debug("caught byte '%c'", c);
+		outsum = crc32(outsum, (Bytef*)&c, 1);
+		fputc(c, outfile);
+	}
+	debug("now at pos: %ld", ftell(archive->handle));
+	/* debug("%s: extracted %s as %d bytes / checksum %lu CRC-32.", */
+	      /* archive->path, record->path, record->length, record->checksum); */
+	debug("extracted: %s", record->path);
+	debug("extracted: %d bytes", record->length);
+	debug("stored checksum: %lu", record->checksum);
+	debug("extracted checksum: %lu", outsum);
+	if (outsum != record->checksum)
+		error(EX_DATAERR, "%s: checksum (%lu) stored in %s does not match extracted checksum (%s)",
+		      record->path, record->checksum, archive->path, outsum);
+
+	/* Seek to the end of this record. */
+	debug("cur pos: %ld",ftell(archive->handle));
+	skip = 1 + (record->offset - skip);
+	debug("skip how far? %ld", skip);
+	if (fseek(archive->handle, (long)skip, SEEK_CUR) != 0)
+		error(EX_IOERR, "Unable to seek to end of record.");
+}
+
+
 static void foo(ZarHandle* archive, const char* file)
 {
 	FILE* infile;
@@ -199,6 +257,53 @@ void zar_list(const char* archive)
 	for (size_t i=0; i < volume->nrecords; ++i) {
 		free(volume->records[i]);
 	}
+	free(volume);
+	zar_close(zar);
+}
+
+/* Cheap hack for right now. */
+#ifdef _WIN32
+#include <direct.h>
+#define chdir(s) _chdir(s)
+#else
+#include <unistd.h>
+#endif
+void zar_extract(const char* archive, const char* where)
+{
+	debug("archive: %s", archive);
+	debug("where: %s", where);
+
+	ZarHandle* zar = zar_open(archive);
+	if (zar == NULL)
+		return;
+
+	if (chdir(where) != 0)
+		error(EX_OSERR, "chdir() failed: %s: %s", where, strerror(errno));
+
+
+	ZarVolumeRecord* volume = zar_create_volume_header();
+	zar_read_volume_record(volume, zar);
+	debug("nrecords: %d", volume->nrecords);
+	for (size_t i=0; i < volume->nrecords; ++i) {
+		ZarFileRecord* record = volume->records[i];
+
+		debug("extracting file record %s", record->path);
+		fpos_t mark = mark_position(zar);
+		zar_read_file_record(record, zar);
+		fsetpos(zar->handle, &mark);
+
+		if (record->format[0] != 0 || record->format[1] || 0)
+			error(EX_DATAERR, "%s: unsupported format: %c%c",
+			      zar->path, record->format[0], record->format[1]);
+
+		extract_raw_file(record, zar);
+	}
+
+	for (size_t i=0; i < volume->nrecords; ++i) {
+	debug("freeing record %d: %s", i, volume->records[i]->path);
+		free(volume->records[i]);
+	}
+	free(volume->records);
 	free(volume);
 	zar_close(zar);
 }
@@ -426,7 +531,8 @@ ZarFileRecord* zar_create_file_record(const char* path)
 
 /** Read record from current archive position.
  *
- * Current position into the archive must be aligned to the start of a record.
+ * Current position into the archive must be aligned to the start of a record when called.
+ * Upon exit current position into the archive will be aligned to the end of the read record.
  */
 void zar_read_file_record(ZarFileRecord* record, ZarHandle* archive)
 {
@@ -443,14 +549,21 @@ void zar_read_file_record(ZarFileRecord* record, ZarHandle* archive)
 	/* We're limiting paths to ZAR_MAX_PATH but the format uses NUL termination. */
 	get_string(record->path, sizeof(record->path), archive->handle);
 	debug("read file record path: %s", record->path);
+	if (strlen(record->path) == 0)
+		error(EX_SOFTWARE, "Mysteriously didn't read a string here. %s:%d", __FILE__, __LINE__);
 
 	warn("pos at read length: %ld", ftell(archive->handle));
 	fread(&record->length, 1, sizeof(ZarOffset_t), archive->handle);
 	debug("file data is %d bytes long", record->length);
-	fseek(archive->handle, record->length, SEEK_CUR);
+	fseek(archive->handle, (long)record->length, SEEK_CUR);
 
 	fread(&record->checksum, 1, sizeof(CRC32_t), archive->handle);
 	debug("file record checksum: %lu", record->checksum); /* TODO: to string! */
+
+	/* TODO: make sure current position matches record->offset.
+	 * There may be extra data in between. That's where cool stuff will get
+	 * plugged, like timestamps.
+	 */
 }
 
 
@@ -511,4 +624,5 @@ void zar_write_file_record(ZarFileRecord* record, ZarHandle* archive)
 
 	if (fsetpos(archive->handle, &end_mark) != 0)
 		error(EX_IOERR, "%s: failed seeking back to end of record", archive->path);
+	puts("------------------------------------------------------------------------------------------");
 }

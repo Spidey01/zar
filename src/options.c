@@ -37,6 +37,7 @@ void usage_long()
 	puts("\t-c, --create,            \tcreate an archive.");
 	puts("\t-t, --list,              \tlist archive members.");
 	puts("\t-x, --extract,           \tlist archive members.");
+	puts("\t-C DIR, --directory DIR  \twhere to extract archive.");
 	puts("\t-f FILE, --file FILE,    \tspecify ZAR archive file.");
 	puts("\t-v, --verbose,           \tchitty, chatty two shoes.");
 	exit(64);
@@ -50,6 +51,13 @@ static inline bool is_option(const char* option, const char* argument)
 }
 
 
+/* Cheap hack for right now. */
+#ifdef _WIN32
+#include <direct.h>
+#define getcwd(buffer, length) _getcwd(buffer, length)
+#else
+#include <unistd.h>
+#endif
 struct ZarOptions parse_options(int argc, char* argv[])
 {
 	int i;
@@ -57,6 +65,7 @@ struct ZarOptions parse_options(int argc, char* argv[])
 	struct ZarOptions opts;
 
 	opts.zarfile = "-";
+	opts.dir = getcwd(NULL, 0);
 	opts.inputs = NULL;
 	opts.mode = '\0';
 
@@ -91,6 +100,10 @@ struct ZarOptions parse_options(int argc, char* argv[])
 		}
 		else if (is_option("-t", arg) || is_option("--list", arg)) {
 			opts.mode = 't';
+		}
+		else if (is_option("-C", arg) || is_option("--directory", arg)) {
+			i++;
+			opts.dir = argv[i];
 		}
 		else {
 			printf("unrecognized option: %s\n", arg);

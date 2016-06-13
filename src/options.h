@@ -22,6 +22,7 @@
 
 struct ZarOptions {
 	const char* zarfile;
+	const char* dir;
 	size_t ninputs;
 	char** inputs;
 	/*
