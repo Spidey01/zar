@@ -265,6 +265,81 @@ void zar_list(const char* archive)
 	zar_close(zar);
 }
 
+
+/*
+ * This is kind of a unit test like function.
+ *
+ * It dumps info with a minimum of help from our zar_* functions.
+ */
+void zar_info(const char* archive)
+{
+	ZarHandle* zar = zar_open(archive);
+	if (zar == NULL)
+		return;
+
+	info("Testing for the magic number.");
+
+	int32_t magic;
+	fread(&magic, 1, 4, zar->handle);
+	if (magic != zar_start_mark) {
+		puts("NOT A ZAR ARCHIVE!");
+		goto DONE;
+	}
+
+	printf("Info for ZAR archive: %s\n\n", zar->path);
+
+	puts("Volume 0");
+
+	char buffer[64];
+
+	info("Decoding file map");
+
+	ZarOffset_t size;
+	fread(&size, 1, sizeof(size), zar->handle);
+	printf("Size of file map: %lld bytes\n", size);
+	get_string(buffer, sizeof(buffer), zar->handle);
+	printf("Encoding of file map: %s\n", buffer);
+	memset(buffer, 0, sizeof(buffer));
+	printf("File map:\n\n");
+	size_t nbytes = 0;
+	size -= ftell(zar->handle);
+	do {
+		ZarOffset_t offset;
+		nbytes += fread(&offset, 1, sizeof(offset), zar->handle);
+		nbytes += get_string(buffer, sizeof(buffer), zar->handle);
+		printf("\tpath: \"%s\" \toffset: %lld bytes\n", buffer, offset);
+		memset(buffer, 0, sizeof(buffer));
+	} while (nbytes < size);
+	CRC32_t checksum;
+	fread(&checksum, 1, sizeof(checksum), zar->handle);
+	/* TODO: verify checksum. */
+	printf("CRC32 checksum of entire file map: %d\n", checksum);
+	fread(&size, 1, sizeof(size), zar->handle);
+	printf("Offset to first file record: %zd bytes\n", size);
+
+	info("Decoding volume metadata");
+
+	/* App / Version */
+	get_string(buffer, sizeof(buffer), zar->handle);
+	char* app = malloc(strlen(buffer) + 1);
+	if (app == NULL)
+		error(EX_OSERR, "malloc() failed");
+	strcpy(app, buffer);
+	memset(buffer, 0, sizeof(buffer));
+	get_string(buffer, sizeof(buffer), zar->handle);
+	char* ver = malloc(sizeof(strlen(buffer)) + 1);
+	if (ver == NULL)
+		error(EX_OSERR, "malloc() failed");
+	strcpy(ver, buffer);
+	printf("Volume was created by %s version %s\n", app, ver);
+	free(app);
+	free(ver);
+
+DONE:
+	zar_close(zar);
+	return;
+}
+
 /* Cheap hack for right now. */
 #ifdef _WIN32
 #include <direct.h>

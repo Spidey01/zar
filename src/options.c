@@ -36,6 +36,7 @@ void usage_long()
 	puts("\t--help,                  \tlong help.");
 	puts("\t-c, --create,            \tcreate an archive.");
 	puts("\t-t, --list,              \tlist archive members.");
+	puts("\t-i, --info,              \tinfo about archive.");
 	puts("\t-x, --extract,           \tlist archive members.");
 	puts("\t-C DIR, --directory DIR  \twhere to extract archive.");
 	puts("\t-f FILE, --file FILE,    \tspecify ZAR archive file.");
@@ -100,6 +101,9 @@ struct ZarOptions parse_options(int argc, char* argv[])
 		}
 		else if (is_option("-t", arg) || is_option("--list", arg)) {
 			opts.mode = 't';
+		}
+		else if (is_option("-i", arg) || is_option("--info", arg)) {
+			opts.mode = 'i';
 		}
 		else if (is_option("-C", arg) || is_option("--directory", arg)) {
 			i++;

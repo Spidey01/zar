@@ -29,6 +29,7 @@ struct ZarOptions {
 	 * c == create new archive from inputs.
 	 * x == extract specified archive.
 	 * t == list contents of archive.
+	 * i == info about archive.
 	 */
 	char mode;
 	bool verbose;
