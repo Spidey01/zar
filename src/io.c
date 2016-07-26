@@ -35,8 +35,11 @@ static const int32_t zar_start_mark = 0x0052415A;
 static const int32_t zar_end_mark = 0x5A415200;
 
 
-/** Like fgets() but looks for NUL terminator instead of newline. */
-static inline void get_string(char* dest, size_t length, FILE *file)
+/** Like fgets() but looks for NUL terminator instead of newline.
+ *
+ * returns number of bytes read.
+ */
+static inline size_t get_string(char* dest, size_t length, FILE *file)
 {
 	size_t i = 0;
 	memset(dest, 0, length);
@@ -47,6 +50,7 @@ static inline void get_string(char* dest, size_t length, FILE *file)
 			break;
 		i++;
 	}
+	return i + 1 /* dont' forget that NUL :) */;
 }
 
 
