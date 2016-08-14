@@ -24,6 +24,7 @@
 #include <unistd.h>
 #endif
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,11 +36,16 @@ int system_chdir(const char* path)
 
 int system_mkdir(const char* path)
 {
+	int status = -1;
 #if _WIN32
-	return _mkdir(path);
+	status =  _mkdir(path);
 #else
-	return mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+	status =  mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 #endif
+	if (status != 0 && errno == EEXIST)
+		return 0;
+	else
+		return status;
 }
 
 
