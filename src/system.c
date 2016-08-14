@@ -15,6 +15,7 @@
  */
 
 #include "system.h"
+#include "io.h"
 
 #ifdef _WIN32
 #include <direct.h>
@@ -34,7 +35,7 @@ int system_chdir(const char* path)
 }
 
 
-int system_mkdir(const char* path)
+static int wrapped_mkdir(const char* path)
 {
 	int status = -1;
 #if _WIN32
@@ -46,6 +47,32 @@ int system_mkdir(const char* path)
 		return 0;
 	else
 		return status;
+}
+
+
+int system_mkdir(const char* path)
+{
+	const char* seg = NULL;
+	const char* cur = path;
+	size_t offset = 0;
+	while ((seg = strchr(cur, '/')) != NULL) {
+
+		/* printf("seg: %s\tcur: %s\n", seg, cur); */
+
+		/* The node we just skipped over. */
+		char buffer[ZAR_MAX_PATH];
+		memset(buffer, '\0', sizeof(buffer));
+		size_t step = strlen(cur) - strlen(seg);
+
+		cur += step + 1;
+		offset += step + 1;
+
+		strncpy(buffer, path, offset - 1);
+		/* printf("buffer: %s\n", buffer); */
+		if (wrapped_mkdir(buffer) != 0)
+			return -1;
+	}
+	return wrapped_mkdir(path);
 }
 
 
