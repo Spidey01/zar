@@ -85,6 +85,7 @@ void zar_create(const char* archive, char* files[], size_t count);
 
 void zar_list(const char* archive);
 void zar_info(const char* archive);
+void zar_extract(const char* archive, const char* where);
 
 ZarHandle* zar_open(const char* archive);
 void zar_close(ZarHandle* archive);

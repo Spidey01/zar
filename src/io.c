@@ -19,6 +19,7 @@
 #include "debug.h"
 
 #include "sysexits.h"
+#include "system.h"
 
 #include "zlib.h"
 
