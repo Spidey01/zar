@@ -44,3 +44,21 @@ Fields are stored in little endian unless otherwise stated.
     ????    8        int64_t        Offset to next volume record.
     ????    4        0x5A415200     Inversed magic number. 0RAZ.
 
+### File Records ###
+
+Every file is stored as a record.
+
+    Offset  Bytes   Value       Comment
+    0       8       int64_t     Offset to end of record.
+    8       2       C-chars     Format of file data.
+    10      \*      C-string    Path of the file recorded.
+    \*      8       int64_t     Length of file data.
+    \*      \*      binary      Formatted file data.
+    10      4       CRC32_t     Checksum of original file.
+
+Files may be stored in one of several formats based on the values of bytes N and M.
+
+    V1      V2      Format      Comments
+    0x00    0x00    Raw         Unmodified original data.
+    0x44    0x46    Deflate     Algorthim used in GZip and most ZIP archives.
+    0x58    0x5A    XZ          // PLANNED
