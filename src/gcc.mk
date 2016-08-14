@@ -3,7 +3,7 @@ CC = c99
 CFLAGS = -Wall
 VPATH = ./src
 O = ./obj
-OBJS = $(addprefix $O/, $(addsuffix .o, main debug options io))
+OBJS = $(addprefix $O/, $(addsuffix .o, system main debug options io))
 
 .SUFFIXES:
 

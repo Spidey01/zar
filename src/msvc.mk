@@ -8,7 +8,7 @@ S = .\src
 
 zar: zar.exe
 
-zar.exe: $O/main.obj $O/debug.obj $O/options.obj $O/io.obj 
+zar.exe: $O/system.obj $O/main.obj $O/debug.obj $O/options.obj $O/io.obj 
 	$(CC) $(CFLAGS) /Fe$@ $** $O\zlib.lib
 
 {$S}.c{$O}.obj::

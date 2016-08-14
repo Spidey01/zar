@@ -340,13 +340,6 @@ DONE:
 	return;
 }
 
-/* Cheap hack for right now. */
-#ifdef _WIN32
-#include <direct.h>
-#define chdir(s) _chdir(s)
-#else
-#include <unistd.h>
-#endif
 void zar_extract(const char* archive, const char* where)
 {
 	debug("archive: %s", archive);
@@ -356,7 +349,7 @@ void zar_extract(const char* archive, const char* where)
 	if (zar == NULL)
 		return;
 
-	if (chdir(where) != 0)
+	if (system_chdir(where) != 0)
 		error(EX_OSERR, "chdir() failed: %s: %s", where, strerror(errno));
 
 
