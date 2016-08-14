@@ -24,6 +24,9 @@
 #include <unistd.h>
 #endif
 
+#include <stdlib.h>
+#include <string.h>
+
 int system_chdir(const char* path)
 {
 	return chdir(path);
@@ -38,3 +41,20 @@ int system_mkdir(const char* path)
 	return mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 #endif
 }
+
+
+char* system_fix_pathseps(char* path)
+{
+	char* slash = NULL;
+	do {
+		/*
+		 * Ensure paths will be UNIX style, not DOS style.
+		 * VMS/RISOS users and cie are on their own.
+		 */
+		slash = strstr(path, "\\");
+		if (slash != NULL)
+			*slash = '/';
+	} while(slash != NULL);
+	return path;
+}
+

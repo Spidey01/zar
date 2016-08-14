@@ -19,4 +19,9 @@
 int system_chdir(const char* path);
 int system_mkdir(const char* path);
 
+/** Modifies path to ensure correct path separators.
+ * Returns path.
+ */
+char* system_fix_pathseps(char* path);
+
 #endif

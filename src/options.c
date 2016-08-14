@@ -16,6 +16,7 @@
 
 #include "debug.h"
 #include "options.h"
+#include "system.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,7 +135,7 @@ struct ZarOptions parse_options(int argc, char* argv[])
 		error(71 /* EX_OSERR */, "Unable to allocate memory for %d input files.", argc);
 	}
 	for (size_t j=0; j < opts.ninputs; ++j) {
-		const char* path = argv[j];
+		const char* path = system_fix_pathseps(argv[j]);
 		debug("Adding %s to inputs[%d]", path, j);
 		opts.inputs[j] = argv[j];
 	}
