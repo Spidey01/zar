@@ -182,6 +182,13 @@ void zar_extract_file(ZarFileRecord* record, ZarHandle* archive)
 		error(EX_DATAERR, "%s: unsupported format: %c%c",
 		      archive->path, record->format[0], record->format[1]);
 
+	char* dir = system_dirname(record->path);
+	if (dir != NULL && *dir != '.') {
+		if (system_mkdir(dir) != 0)
+			error(EX_OSERR, "cannot mkdir(): %s: %s", dir, strerror(errno));
+	}
+	free(dir);
+
 	extract_raw_file(record, archive);
 }
 
