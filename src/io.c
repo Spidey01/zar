@@ -171,6 +171,19 @@ static void extract_raw_file(ZarFileRecord* record, ZarHandle* archive)
 		error(EX_IOERR, "Unable to seek to end of record.");
 }
 
+void zar_extract_file(ZarFileRecord* record, ZarHandle* archive)
+{
+	debug("extracting file record %s", record->path);
+	fpos_t mark = mark_position(archive);
+	zar_read_file_record(record, archive);
+	fsetpos(archive->handle, &mark);
+
+	if (record->format[0] != 0 || record->format[1] || 0)
+		error(EX_DATAERR, "%s: unsupported format: %c%c",
+		      archive->path, record->format[0], record->format[1]);
+
+	extract_raw_file(record, archive);
+}
 
 void zar_create(const char* archive, char* files[], size_t count)
 {
@@ -329,17 +342,7 @@ void zar_extract(const char* archive, const char* where)
 	debug("nrecords: %d", volume->nrecords);
 	for (size_t i=0; i < volume->nrecords; ++i) {
 		ZarFileRecord* record = volume->records[i];
-
-		debug("extracting file record %s", record->path);
-		fpos_t mark = mark_position(zar);
-		zar_read_file_record(record, zar);
-		fsetpos(zar->handle, &mark);
-
-		if (record->format[0] != 0 || record->format[1] || 0)
-			error(EX_DATAERR, "%s: unsupported format: %c%c",
-			      zar->path, record->format[0], record->format[1]);
-
-		extract_raw_file(record, zar);
+		zar_extract_file(record, zar);
 	}
 
 	for (size_t i=0; i < volume->nrecords; ++i) {
