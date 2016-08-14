@@ -17,5 +17,6 @@
 #define ZAR_SRC_SYSTEM__H
 
 int system_chdir(const char* path);
+int system_mkdir(const char* path);
 
 #endif

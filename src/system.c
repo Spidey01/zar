@@ -20,6 +20,7 @@
 #include <direct.h>
 #define chdir(s) _chdir(s)
 #else
+#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -28,3 +29,12 @@ int system_chdir(const char* path)
 	return chdir(path);
 }
 
+
+int system_mkdir(const char* path)
+{
+#if _WIN32
+	return _mkdir(path);
+#else
+	return mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+#endif
+}
