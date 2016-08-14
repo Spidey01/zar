@@ -583,17 +583,17 @@ void zar_read_file_record(ZarFileRecord* record, ZarHandle* archive)
 	fread(&record->offset, 1, sizeof(ZarOffset_t), archive->handle);
 	debug("offset to end of record: %ld bytes", record->offset);
 
-	warn("pos at read format: %ld", ftell(archive->handle));
-	record->format[0] = (char)fgetc(archive->handle);
-	record->format[1] = (char)fgetc(archive->handle);
-	debug("file data format is %c%c", record->format[0], record->format[0]);
-
 	warn("pos at read path: %ld", ftell(archive->handle));
 	/* We're limiting paths to ZAR_MAX_PATH but the format uses NUL termination. */
 	get_string(record->path, sizeof(record->path), archive->handle);
 	debug("read file record path: %s", record->path);
 	if (strlen(record->path) == 0)
 		error(EX_SOFTWARE, "Mysteriously didn't read a string here. %s:%d", __FILE__, __LINE__);
+
+	warn("pos at read format: %ld", ftell(archive->handle));
+	record->format[0] = (char)fgetc(archive->handle);
+	record->format[1] = (char)fgetc(archive->handle);
+	debug("file data format is %c%c", record->format[0], record->format[0]);
 
 	warn("pos at read length: %ld", ftell(archive->handle));
 	fread(&record->length, 1, sizeof(ZarOffset_t), archive->handle);
@@ -620,6 +620,9 @@ void zar_write_file_record(ZarFileRecord* record, ZarHandle* archive)
 	xtrace("after offset at start of record at %ld bytes", ftell(archive->handle));
 	record->offset = ftell(archive->handle);
 
+	warn("pos at write path: %ld", ftell(archive->handle));
+	put_string(record->path, archive->handle);
+
 	/* TODO: How do we want to decide format?
 	 *
 	 * Best plan is probably to make a guess if the file matches a known
@@ -636,9 +639,6 @@ void zar_write_file_record(ZarFileRecord* record, ZarHandle* archive)
 	warn("pos at write format: %ld", ftell(archive->handle));
 	fputc(record->format[0], archive->handle);
 	fputc(record->format[1], archive->handle);
-
-	warn("pos at write path: %ld", ftell(archive->handle));
-	put_string(record->path, archive->handle);
 
 	fpos_t length_mark = mark_position(archive);
 	warn("pos at write length: %ld", ftell(archive->handle));
