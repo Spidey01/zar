@@ -43,6 +43,63 @@ int system_mkdir(const char* path)
 }
 
 
+char* system_dirname(const char* path)
+{
+	static const char* def = ".";
+	char* out = NULL;
+
+	if (path == NULL || *path == '\0')
+		goto FAIL;
+
+	out = strrchr(path, '/');
+	if (out == NULL)
+		goto FAIL;
+
+	size_t end = strlen(path) - strlen(out);
+	out = malloc(end);
+	if (out == NULL)
+		return NULL;
+
+	for (size_t i=0; i < end; ++i)
+		out[i] = path[i];
+	out[end] = '\0';
+
+	return out;
+
+FAIL:
+	out = malloc(2);
+	out[0] = '.';
+	out[1] = '\0';
+	return out;
+}
+
+
+const char* system_basename(const char* path)
+{
+	static const char* def = ".";
+	char* out = NULL;
+
+	if (path == NULL || *path == '\0')
+		goto FAIL;
+
+	const char* p = strrchr(path, '/');
+	if (p == NULL)
+		goto FAIL;
+	++p;
+
+	size_t length = strlen(p);
+	out = malloc(length + 1);
+	memcpy(out, p, length);
+	out[length] = '\0';
+	return out;
+FAIL:
+	out = malloc(2);
+	out[0] = '.';
+	out[1] = '\0';
+	return out;
+}
+
+
 char* system_fix_pathseps(char* path)
 {
 	char* slash = NULL;

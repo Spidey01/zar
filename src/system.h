@@ -18,6 +18,10 @@
 
 int system_chdir(const char* path);
 int system_mkdir(const char* path);
+/** Similar to dirname(). Result must be free()'d. */
+char* system_dirname(const char* path);
+/** Similar to basename(). Result must be free()'d. */
+const char* system_basename(const char* path);
 
 /** Modifies path to ensure correct path separators.
  * Returns path.
