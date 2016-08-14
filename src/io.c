@@ -171,35 +171,6 @@ static void extract_raw_file(ZarFileRecord* record, ZarHandle* archive)
 }
 
 
-static void foo(ZarHandle* archive, const char* file)
-{
-	FILE* infile;
-	ZarFileRecord record;
-
-	/* Where to move this? */
-	if (*file == '/' || *file == '\\') {
-		debug("stripping leading / from %s", file);
-		++file;
-	}
-	strncpy(record.path, file, sizeof(record.path));
-
-	if (archive->handle == NULL)
-		error(EX_SOFTWARE, "%s: handle not open!", __FILE__);
-
-	infile = fopen(file, "rb");
-	if (infile == NULL) {
-		warn("failed opening %s (%s)", file, strerror(errno));
-		return;
-	}
-
-	// snip
-
-	if (feof(infile))
-		debug("end of %s", record.path);
-
-	fclose(infile);
-}
-
 void zar_create(const char* archive, char* files[], size_t count)
 {
 	info("archive name:%s", archive);
@@ -228,7 +199,6 @@ void zar_create(const char* archive, char* files[], size_t count)
 	for (size_t i=0; i < volume->nrecords; ++i) {
 		const char* file = files[i];
 		info("adding %s to archive %s", file, zar->path);
-		/* foo(zar, file); */
 		zar_write_file_record(volume->records[i], zar);
 	}
 
