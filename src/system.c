@@ -25,6 +25,9 @@
 #define getcwd(buffer, length) _getcwd(buffer, length)
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <windows.h>
+#include <winbase.h>
+#include <FileAPI.h>
 #define stat(path, buffer) _stat(path, buffer)
 #define S_ISDIR(mode) (mode & _S_IFDIR)
 #else
@@ -169,5 +172,79 @@ bool system_isdir(const char* path)
 	if (stat(path, &s) != 0)
 		error(EX_IOERR, "%s: stat() failed: %s", path, strerror(errno));
 	return S_ISDIR(s.st_mode);
+}
+
+
+#if _WIN32
+/* Used to emulate the POSIX interface on top of the local hacks. */
+struct DirHandleWrapper {
+	char* kludge;
+	WIN32_FIND_DATA data;
+	HANDLE handle;
+};
+#endif
+
+
+void* system_opendir(const char* path)
+{
+#if _WIN32
+	struct DirHandleWrapper* wrapper = malloc(sizeof(struct DirHandleWrapper));
+	if (wrapper == NULL)
+		return NULL;
+
+	/* Windows is weird: we need to append \* or we don't get the contents. */
+	size_t len = strlen(path);
+	wrapper->kludge = malloc(len + 3);
+	if (wrapper->kludge == NULL)
+		error(EX_OSERR, "%s(): unable allocate memory.", __func__);
+	memcpy(wrapper->kludge, path, len);
+	wrapper->kludge[len] = '\\';
+	wrapper->kludge[len+1] = '*';
+	wrapper->kludge[len+2] = '\0';
+
+	wrapper->handle = FindFirstFile(wrapper->kludge, &wrapper->data);
+	if (wrapper->handle == INVALID_HANDLE_VALUE) {
+		free(wrapper->kludge);
+		return NULL;
+	}
+	return wrapper;
+#else
+	return opendir(path);
+#endif
+}
+
+
+char* system_readdir(void* dirhandle, char* result, size_t max)
+{
+#if _WIN32
+	struct DirHandleWrapper* wrapper = (struct DirHandleWrapper*)dirhandle;
+SKIP_DOTS:
+	/* XXX: for some reason we get a crash instead of a 0 at end of dir. */
+	if (FindNextFile(wrapper->handle, &wrapper->data) == 0)
+		return NULL;
+	if (strcmp("..", wrapper->data.cFileName) == 0)
+		goto SKIP_DOTS;
+	return strncpy(result, wrapper->data.cFileName, max);
+#else
+	struct dirent* entry = readdir((DIR*)dirhandle);
+	if (entry == NULL) {
+		return NULL;
+	}
+	/* I forget if unix readdir() returns . or .. */
+	return strncpy(result, entry->d_name, max);
+#endif
+}
+
+
+void system_closedir(void* dirhandle)
+{
+#if _WIN32
+	struct DirHandleWrapper* wrapper = (struct DirHandleWrapper*)dirhandle;
+	FindClose(wrapper->handle);
+	free(wrapper->kludge);
+	free(wrapper);
+#else
+	closedir((DIR*)dirhandle);
+#endif
 }
 

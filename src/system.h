@@ -33,5 +33,11 @@ const char* system_basename(const char* path);
 char* system_fix_pathseps(char* path);
 
 bool system_isdir(const char* path);
+void* system_opendir(const char* path);
+/** Like strncpy() over the name of the next directory entry.
+ * If end of directory: NULL is returned and result is untouched.
+ */
+char* system_readdir(void* dirhandle, char* result, size_t max);
+void system_closedir(void* dirhandle);
 
 #endif
