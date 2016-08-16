@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-#include "system.h"
+#include "debug.h"
 #include "io.h"
+#include "sysexits.h"
+#include "system.h"
 
 #ifdef _WIN32
 #include <direct.h>
 #define chdir(s) _chdir(s)
 #define getcwd(buffer, length) _getcwd(buffer, length)
+#include <sys/types.h>
+#include <sys/stat.h>
+#define stat(path, buffer) _stat(path, buffer)
+#define S_ISDIR(mode) (mode & _S_IFDIR)
 #else
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
@@ -153,5 +160,14 @@ char* system_fix_pathseps(char* path)
 			*slash = '/';
 	} while(slash != NULL);
 	return path;
+}
+
+
+bool system_isdir(const char* path)
+{
+	struct stat s;
+	if (stat(path, &s) != 0)
+		error(EX_IOERR, "%s: stat() failed: %s", path, strerror(errno));
+	return S_ISDIR(s.st_mode);
 }
 

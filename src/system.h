@@ -17,6 +17,7 @@
 #define ZAR_SRC_SYSTEM__H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 char* system_getcwd(char* out, size_t size);
 int system_chdir(const char* path);
@@ -30,5 +31,7 @@ const char* system_basename(const char* path);
  * Returns path.
  */
 char* system_fix_pathseps(char* path);
+
+bool system_isdir(const char* path);
 
 #endif
