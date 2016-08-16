@@ -16,6 +16,7 @@
 
 #include "debug.h"
 #include "options.h"
+#include "sysexits.h"
 #include "system.h"
 
 #include <stdio.h>
@@ -129,6 +130,9 @@ struct ZarOptions parse_options(int argc, char* argv[])
 	}
 	for (size_t j=0; j < opts.ninputs; ++j) {
 		const char* path = system_fix_pathseps(argv[j]);
+		if (system_isdir(path)) {
+			error(EX_DATAERR, "Sorry: I don't understand directory recursion yet.");
+		}
 		debug("Adding %s to inputs[%d]", path, j);
 		opts.inputs[j] = argv[j];
 	}
