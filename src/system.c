@@ -20,6 +20,7 @@
 #ifdef _WIN32
 #include <direct.h>
 #define chdir(s) _chdir(s)
+#define getcwd(buffer, length) _getcwd(buffer, length)
 #else
 #include <sys/stat.h>
 #include <unistd.h>
@@ -28,6 +29,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+
+char* system_getcwd(char* out, size_t size)
+{
+	return getcwd(out, size);
+}
+
 
 int system_chdir(const char* path)
 {

@@ -53,13 +53,6 @@ static inline bool is_option(const char* option, const char* argument)
 }
 
 
-/* Cheap hack for right now. */
-#ifdef _WIN32
-#include <direct.h>
-#define getcwd(buffer, length) _getcwd(buffer, length)
-#else
-#include <unistd.h>
-#endif
 struct ZarOptions parse_options(int argc, char* argv[])
 {
 	int i;
@@ -67,7 +60,7 @@ struct ZarOptions parse_options(int argc, char* argv[])
 	struct ZarOptions opts;
 
 	opts.zarfile = "-";
-	opts.dir = getcwd(NULL, 0);
+	opts.dir = system_getcwd(NULL, 0);
 	opts.inputs = NULL;
 	opts.mode = '\0';
 

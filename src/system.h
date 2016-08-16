@@ -16,6 +16,9 @@
 #ifndef ZAR_SRC_SYSTEM__H
 #define ZAR_SRC_SYSTEM__H
 
+#include <stdint.h>
+
+char* system_getcwd(char* out, size_t size);
 int system_chdir(const char* path);
 int system_mkdir(const char* path);
 /** Similar to dirname(). Result must be free()'d. */
