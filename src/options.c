@@ -23,6 +23,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* TODO: move to shared header... */
+#define ZAR_MAX_PATH 1024
+
 void usage_short()
 {
 	puts("usage: zar [options] {zarfile} [input files]");
@@ -51,6 +54,67 @@ static inline bool is_option(const char* option, const char* argument)
 {
 	/* Yes. I. Am. Lazy. */
 	return strcmp(option, argument) == 0;
+}
+
+
+static inline void append_to_inputs(struct ZarOptions* opts, const char* path, size_t* index)
+{
+	info("Adding %s to input list at index %d", path, *index);
+
+	opts->ninputs += 1;
+
+	opts->inputs = realloc(opts->inputs, ZAR_MAX_PATH * opts->ninputs);
+	if (opts->inputs == NULL)
+		error(EX_OSERR, "Unable to allocate memory");
+
+	char* p = opts->inputs[*index] = malloc(ZAR_MAX_PATH);
+	if (p == NULL)
+		error(EX_OSERR, "Unable to allocate memory for %s", path);
+	memset(p, '\0', ZAR_MAX_PATH);
+	strncpy(p, path, strlen(path) + 1);
+
+	*index += 1;
+}
+
+
+static inline void foo(struct ZarOptions* opts, const char* root, size_t* index)
+{
+	info("Adding %s to input list (recursively)", root);
+	if (*index > 30)
+		error(1, "FORCE EXIT");
+
+	void* dir = system_opendir(root);
+	char* entry;
+	char buffer[ZAR_MAX_PATH];
+
+	memset(buffer, '\0', ZAR_MAX_PATH);
+	while ((entry = system_readdir(dir, buffer, sizeof(buffer))) != NULL) {
+		debug("entry/buffer: %s", buffer);
+
+		char path[ZAR_MAX_PATH];
+
+		xtrace("Combing root and system_readdir() entry into one path.");
+		size_t sep = strlen(root);
+		strncpy(path, root, ZAR_MAX_PATH);
+		path[sep] = '/';
+		char* p = path + sep + 1;
+		strncpy(p, entry, ZAR_MAX_PATH - strlen(path));
+		xtrace("Combined path: %s", path);
+
+		#if 0
+		append_to_inputs(opts, path, index);
+		#else
+		void* child = system_opendir(path);
+		if (child == NULL) {
+			append_to_inputs(opts, path, index);
+		} else {
+			system_closedir(child);
+			foo(opts, path, index);
+		}
+		#endif
+	}
+
+	system_closedir(dir);
 }
 
 
@@ -115,30 +179,40 @@ struct ZarOptions parse_options(int argc, char* argv[])
 		debug("remaining args:%s", argv[i]);
 	i = -1;
 
-	opts.ninputs = argc;
-	debug("number of inputs:%d", opts.ninputs);
+	debug("number of inputs on command line:%d", argc);
+
+	/* Just a stub. */
+	opts.inputs = malloc(1);
+	if (opts.inputs == NULL)
+		error(EX_OSERR, "Unable to allocate any memory");
+
 	/*
-	 * Populate the input list.
-	 *
-	 * We should be allocating and copying memory here more properly.
-	 * Technically we don't need to give a crap: input is always from
-	 * suitable static data (main's argv). So we don't.
+	 * Add the files first, 'cuz easy peasy.
 	 */
-	opts.inputs = malloc(opts.ninputs);
-	if (opts.inputs == NULL) {
-		error(71 /* EX_OSERR */, "Unable to allocate memory for %d input files.", argc);
-	}
-	for (size_t j=0; j < opts.ninputs; ++j) {
+	opts.ninputs = 0;
+	size_t index = 0;
+	for (int j=0; j < argc; ++j) {
 		const char* path = system_fix_pathseps(argv[j]);
-		if (system_isdir(path)) {
-			error(EX_DATAERR, "Sorry: I don't understand directory recursion yet.");
-		}
-		debug("Adding %s to inputs[%d]", path, j);
-		opts.inputs[j] = argv[j];
+		if (system_isdir(path))
+			continue;
+		append_to_inputs(&opts, path, &index);
 	}
+	debug("index now: %d", index);
+
+	/*
+	 * Second pass for the directories.
+	 */
+	for (int j=0; j < argc; ++j) {
+		const char* path = system_fix_pathseps(argv[j]);
+		if (!system_isdir(path))
+			continue;
+		foo(&opts, path, &index);
+	}
+	debug("index now: %d", index);
 
 	debug("ZarOptions::zarfile:%s", opts.zarfile);
 	debug("ZarOptions::mode: %c", opts.mode);
+	debug("ZarOptions::ninputs: %d", opts.ninputs);
 	for (size_t j=0; j < opts.ninputs; ++j)
 		debug("ZarOptions::inputs[%d]:%s", j, opts.inputs[j]);
 
