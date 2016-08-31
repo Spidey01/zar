@@ -1,5 +1,5 @@
 
-CC = c99
+CC = gcc
 CFLAGS = -Wall
 
 include src/unix.mk
