@@ -231,7 +231,8 @@ SKIP_DOTS:
 	if (entry == NULL) {
 		return NULL;
 	}
-	/* I forget if unix readdir() returns . or .. */
+	if (strcmp("..", entry->d_name) == 0 || strcmp(".", entry->d_name) == 0)
+		return system_readdir(dirhandle, result, max);
 	return strncpy(result, entry->d_name, max);
 #endif
 }
