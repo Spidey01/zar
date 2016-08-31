@@ -495,7 +495,7 @@ void zar_write_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
 	const char* myver = "0.1";
 	put_string(myver, archive->handle);
 
-	info("Wrote volume created by %s/%s", myname);
+	info("Wrote volume created by %s/%s", myname, myver);
 }
 
 void zar_read_volume_record(ZarVolumeRecord* volume, ZarHandle* archive)
