@@ -31,8 +31,9 @@
 #define stat(path, buffer) _stat(path, buffer)
 #define S_ISDIR(mode) (mode & _S_IFDIR)
 #else
-#include <sys/types.h>
+#include <dirent.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 
