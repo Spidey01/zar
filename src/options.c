@@ -26,6 +26,8 @@
 /* TODO: move to shared header... */
 #define ZAR_MAX_PATH 1024
 
+extern int debug_level;
+
 void usage_short()
 {
 	puts("usage: zar [options] {zarfile} [input files]");
@@ -147,6 +149,11 @@ struct ZarOptions parse_options(int argc, char* argv[])
 		}
 		else if (is_option("-v", arg) || is_option("--verbose", arg)) {
 			opts.verbose = true;
+			debug_level += 1;
+		}
+		else if (is_option("-D", arg) || is_option("--debug-level", arg)) {
+			i++;
+			debug_level = atoi(argv[i]);
 		}
 		else if (is_option("-f", arg) || is_option("--file", arg)) {
 			i++;

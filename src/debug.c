@@ -18,14 +18,58 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+enum {
+	DEBUG_error,
+	DEBUG_warn,
+	DEBUG_info,
+	DEBUG_debug,
+	DEBUG_xtrace
+};
+
+int debug_level = DEBUG_warn;
+
+
+static void debug_printf(int level, const char* fmt, ...)
+{
+	if (debug_level < level)
+		return;
+
+	const char* p;
+	switch (level) {
+		case DEBUG_error:
+			p = "error:";
+			break;
+		case DEBUG_warn:
+			p = "warn:";
+			break;
+		case DEBUG_info:
+			p = "info:";
+			break;
+		case DEBUG_debug:
+			p = "debug:";
+			break;
+		case DEBUG_xtrace:
+			p = "xtrace:";
+			break;
+		default:
+			p = "wtf:";
+			break;
+	}
+	fprintf(stderr, "%s", p);
+
+	va_list args;
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	fputc('\n', stderr);
+	va_end(args);
+}
+
 #define FUN(name) \
 	void name (const char* fmt, ...) \
 	{ \
 		va_list args; \
 		va_start(args, fmt); \
-		fprintf(stderr, #name ":"); \
-		vfprintf(stderr, fmt, args); \
-		fputc('\n', stderr); \
+		debug_printf(DEBUG_##name, fmt, args); \
 		va_end(args); \
 	}
 
@@ -38,9 +82,7 @@ void error(int status, const char* fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	fprintf(stderr, "error:");
-	vfprintf(stderr, fmt, args);
-	fputc('\n', stderr);
+	debug_printf(DEBUG_error, fmt, args);
 	va_end(args);
 	exit(status);
 }
