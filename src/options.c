@@ -39,15 +39,16 @@ void usage_long()
 {
 	puts("usage: zar [options] {zarfile} [input files]");
 	putchar('\n');
-	puts("\t-h,                      \tshort help.");
-	puts("\t--help,                  \tlong help.");
-	puts("\t-c, --create,            \tcreate an archive.");
-	puts("\t-t, --list,              \tlist archive members.");
-	puts("\t-i, --info,              \tinfo about archive.");
-	puts("\t-x, --extract,           \tlist archive members.");
-	puts("\t-C DIR, --directory DIR  \twhere to extract archive.");
-	puts("\t-f FILE, --file FILE,    \tspecify ZAR archive file.");
-	puts("\t-v, --verbose,           \tchitty, chatty two shoes.");
+	puts("\t-h,                        \tshort help.");
+	puts("\t--help,                    \tlong help.");
+	puts("\t-c, --create,              \tcreate an archive.");
+	puts("\t-t, --list,                \tlist archive members.");
+	puts("\t-i, --info,                \tinfo about archive.");
+	puts("\t-x, --extract,             \tlist archive members.");
+	puts("\t-C DIR, --directory DIR    \twhere to extract archive.");
+	puts("\t-f FILE, --file FILE,      \tspecify ZAR archive file.");
+	puts("\t-v, --verbose,             \tchitty, chatty two shoes.");
+	puts("\t-D NUM, --debug-level NUM  \tSet debug level.");
 	exit(64);
 }
 
