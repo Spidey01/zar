@@ -16,10 +16,27 @@
 #ifndef ZAR_SRC_DEBUG__H
 #define ZAR_SRC_DEBUG__H
 
-void xtrace(const char* fmt, ...);
-void debug(const char* fmt, ...);
-void info(const char* fmt, ...);
-void warn(const char* fmt, ...);
+#include <stdarg.h>
+
+extern int debug_level;
+
+void debug_printf(int level, const char* fmt, ...);
+void debug_vprintf(int level, const char* fmt, va_list vargs);
 void error(int status, const char* fmt, ...);
+
+
+enum {
+	DEBUG_error,
+	DEBUG_warn,
+	DEBUG_info,
+	DEBUG_debug,
+	DEBUG_xtrace
+};
+
+
+#define xtrace(fmt, ...) debug_printf(DEBUG_xtrace, fmt, ##__VA_ARGS__);
+#define debug(fmt, ...) debug_printf(DEBUG_debug, fmt, ##__VA_ARGS__);
+#define info(fmt, ...) debug_printf(DEBUG_info, fmt, ##__VA_ARGS__);
+#define warn(fmt, ...) debug_printf(DEBUG_warn, fmt, ##__VA_ARGS__);
 
 #endif

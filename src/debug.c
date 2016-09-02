@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
+#include "debug.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-enum {
-	DEBUG_error,
-	DEBUG_warn,
-	DEBUG_info,
-	DEBUG_debug,
-	DEBUG_xtrace
-};
-
 int debug_level = DEBUG_warn;
 
 
-static void debug_printf(int level, const char* fmt, ...)
+void debug_printf(int level, const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	debug_vprintf(level, fmt, args);
+	va_end(args);
+}
+
+
+void debug_vprintf(int level, const char* fmt, va_list vargs)
 {
 	if (debug_level < level)
 		return;
@@ -57,32 +60,17 @@ static void debug_printf(int level, const char* fmt, ...)
 	}
 	fprintf(stderr, "%s", p);
 
-	va_list args;
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
+	vfprintf(stderr, fmt, vargs);
 	fputc('\n', stderr);
-	va_end(args);
 }
 
-#define FUN(name) \
-	void name (const char* fmt, ...) \
-	{ \
-		va_list args; \
-		va_start(args, fmt); \
-		debug_printf(DEBUG_##name, fmt, args); \
-		va_end(args); \
-	}
-
-FUN(xtrace)
-FUN(debug)
-FUN(info)
-FUN(warn)
 
 void error(int status, const char* fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	debug_printf(DEBUG_error, fmt, args);
+	debug_vprintf(DEBUG_error, fmt, args);
 	va_end(args);
 	exit(status);
 }
+
