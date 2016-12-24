@@ -1,10 +1,5 @@
 
 CC = gcc
-CFLAGS = -Wall
-#
-# Should this be in LDFLAGS or LDLIBS? I think the latter
-# but LINK.c doesn't use LDLIBS!
-#
-LDFLAGS = -lz
+CFLAGS = -Wall -I$(O)/include
 
 include src/unix.mk

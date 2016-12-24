@@ -4,16 +4,28 @@
 
 VPATH = ./src
 O = ./obj
-OBJS = $(addprefix $O/, $(addsuffix .o, system main debug options io))
+LIBZ = $(O)/lib/libz.a
+OBJS = $(addprefix $O/, $(addsuffix .o, system main debug options io)) $(LIBZ)
 
 .SUFFIXES:
 
 zar: $(OBJS)
 	$(LINK.c) $^ -o $@
 
-$(O)/%.o : %.c
+$(O)/%.o : %.c $(O)
 	$(COMPILE.c) $< -o $@
 
+$(O):
+	mkdir $@
+
+FIXZLIB = cd zlib && git reset --hard HEAD && git clean -f
+$(LIBZ): $(O) zlib/libz.a
+
+$(LIBZ):
+	$(FIXZLIB)
+	cd zlib && ./configure --static --prefix=$(CURDIR)/$O/
+	cd zlib && make install
+	$(FIXZLIB)
 
 clean:
 	rm -f $O/*.o
