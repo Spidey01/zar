@@ -19,6 +19,9 @@ fi
 echo "$name: Making zlib using ZAR_TOOLCHAIN=$toolchain under ZAR_BUILDDIR=$builddir"
 mkdir -p "$builddir"
 
+git submodule init
+git submodule update
+
 # lazy ;)
 builddir="$builddir/zlib"
 

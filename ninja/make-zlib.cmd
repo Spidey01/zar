@@ -10,6 +10,9 @@
 
 IF EXIST %ZAR_BUILDDIR%\zlib.lib GOTO :eof
 
+git submodule init
+git submodule update
+
 MKDIR %ZAR_BUILDDIR%
 
 robocopy /E zlib %ZAR_BUILDDIR%\zlib
