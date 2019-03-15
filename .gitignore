@@ -1,4 +1,5 @@
 zar
 zar.exe
+build.ninja
 obj
 *.sw?

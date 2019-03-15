@@ -1,0 +1,13 @@
+
+compiler = clang
+cflags = -Wall -I${builddir}/zlib
+
+linker = clang
+ldflags = 
+ldlibs = 
+
+objext = o
+binext = bin
+
+zlib = $builddir/zlib/libz.a
+

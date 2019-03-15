@@ -1,0 +1,13 @@
+
+compiler = gcc
+cflags = -Wall -I${builddir}/zlib
+
+linker = gcc
+ldflags = 
+ldlibs = 
+
+objext = o
+binext = bin
+
+zlib = $builddir/zlib/libz.a
+

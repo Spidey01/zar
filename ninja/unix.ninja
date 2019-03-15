@@ -1,0 +1,15 @@
+
+# Compile .c -> .obj
+rule cc
+    depfile = $out.d
+    deps = gcc
+    command = $compiler -MMD -MF $out.d $cppflags $cflags -o ${out} -c ${in}
+
+# Link .obj -> binary including link flags
+rule ld
+    command = $linker $ldflags -o ${out} ${in} $ldlibs
+
+# Copy zar.bin to top level zar.
+rule zar
+    command = cp -v $in $out
+build ./zar: zar $builddir/zar.$binext

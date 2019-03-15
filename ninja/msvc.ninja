@@ -1,0 +1,25 @@
+
+make = nmake /nologo
+linker = link /NOLOGO
+compiler = cl /nologo
+cflags = /W4 /MD /GR /EHsc /D_CRT_SECURE_NO_WARNINGS /I.\\zlib\\ 
+
+objext = obj
+binext = exe
+
+zlib = $builddir/zlib.lib
+
+# Compile .c -> .obj
+rule cc
+    deps = msvc
+    command = $compiler $cflags /Fo${out} /c ${in}
+
+# Link .obj -> .exe including .lib files.
+rule ld
+    command = $compiler $cflags /Fe${out} ${in}
+
+# Copy zar.exe to top level zar.
+# cmd.exe's COPY command gets confused if it isn't backslash.
+rule zar
+    command = cmd /C COPY /B $in $out
+build zar.exe: zar $builddir\zar.$binext

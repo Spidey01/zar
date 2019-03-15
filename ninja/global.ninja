@@ -1,0 +1,6 @@
+#
+# Define global variables here.
+#
+
+builddir = obj
+

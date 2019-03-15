@@ -1,0 +1,9 @@
+
+build $builddir/src/debug.$objext: cc src/debug.c
+build $builddir/src/io.$objext: cc src/io.c
+build $builddir/src/main.$objext: cc src/main.c
+build $builddir/src/options.$objext: cc src/options.c
+build $builddir/src/system.$objext: cc src/system.c
+
+build $builddir/zar.$binext: ld $builddir/src/debug.$objext $builddir/src/io.$objext $builddir/src/main.$objext $builddir/src/options.$objext $builddir/src/system.$objext $zlib 
+
